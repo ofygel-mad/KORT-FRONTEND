@@ -1,0 +1,603 @@
+.page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0;
+  padding: 40px 24px 32px;
+  background:
+    radial-gradient(circle at top center, color-mix(in srgb, var(--fill-accent) 14%, transparent) 0%, transparent 28%),
+    radial-gradient(circle at bottom left, color-mix(in srgb, var(--fill-info) 10%, transparent) 0%, transparent 30%),
+    linear-gradient(145deg, color-mix(in srgb, var(--bg-canvas) 92%, white 8%) 0%, var(--bg-canvas) 100%);
+}
+
+.logoRow,
+.steps,
+.card {
+  position: relative;
+  z-index: 1;
+}
+
+.logoRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 30px;
+}
+
+.logoCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.logoEyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.logoLabel {
+  font-size: 22px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.stepItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stepDotWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stepDot {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition:
+    background var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease);
+}
+
+.stepDot.pending {
+  background: color-mix(in srgb, var(--bg-surface) 92%, transparent);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+}
+
+.stepDot.active {
+  background: var(--fill-accent);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-accent);
+}
+
+.stepDot.done {
+  background: var(--fill-positive);
+  color: var(--text-inverse);
+}
+
+.stepDotNum {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.stepLabel {
+  font-size: 12px;
+  transition: color var(--motion-fast) var(--motion-ease);
+}
+
+.stepLabel.active {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.stepLabel.other {
+  color: var(--text-tertiary);
+}
+
+.stepConnector {
+  width: 30px;
+  height: 1px;
+  border-radius: 999px;
+  transition: background var(--motion-fast) var(--motion-ease);
+}
+
+.stepConnector.done {
+  background: color-mix(in srgb, var(--fill-positive) 72%, transparent);
+}
+
+.stepConnector.pending {
+  background: color-mix(in srgb, var(--border-subtle) 88%, transparent);
+}
+
+.card {
+  width: 100%;
+  padding: clamp(24px, 4vw, 38px);
+  background: var(--brand-surface-3);
+  border: 1px solid var(--brand-panel-border);
+  border-radius: calc(var(--surface-radius) + 8px);
+  box-shadow: var(--brand-panel-shadow-strong);
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, white 10%, transparent) 0%, transparent 22%),
+    radial-gradient(circle at top right, color-mix(in srgb, var(--fill-accent) 12%, transparent) 0%, transparent 36%);
+}
+
+.cardNarrow {
+  max-width: 620px;
+}
+
+.cardWide {
+  max-width: 880px;
+}
+
+.sectionIntro {
+  margin-bottom: 14px;
+}
+
+.sectionTitle {
+  margin: 0 0 8px;
+  font-size: var(--text-size-2xl);
+  font-weight: 700;
+  font-family: var(--font-display);
+  line-height: 1.15;
+  letter-spacing: -0.022em;
+  color: var(--text-primary);
+}
+
+.sectionDesc {
+  margin: 0 0 26px;
+  font-size: var(--text-size-md);
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 720px;
+}
+
+.subLabel {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 12px;
+  margin-bottom: 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--fill-accent-subtle) 76%, var(--bg-surface));
+  border: 1px solid color-mix(in srgb, var(--fill-accent) 14%, var(--border-subtle));
+  color: var(--text-accent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.industryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.industryBtn,
+.sizeBtn,
+.planCard,
+.quickLinkBtn {
+  transition:
+    transform var(--motion-fast) var(--motion-ease),
+    box-shadow var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    background var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.industryBtn {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--bg-surface) 94%, transparent);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-body);
+  box-shadow: var(--shadow-xs);
+}
+
+.industryBtn:hover,
+.sizeBtn:hover,
+.planCard:hover,
+.quickLinkBtn:hover {
+  transform: var(--feedback-raise-hover);
+  box-shadow: var(--shadow-md);
+}
+
+.industryBtn:active,
+.sizeBtn:active,
+.planCard:active,
+.quickLinkBtn:active {
+  transform: var(--feedback-soft-press);
+}
+
+.industryBtn.selected {
+  border-color: color-mix(in srgb, var(--fill-accent) 42%, var(--border-default));
+  background: color-mix(in srgb, var(--fill-accent-subtle) 86%, var(--bg-surface));
+  box-shadow: var(--brand-panel-shadow);
+}
+
+.industryIcon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-lg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--fill-accent-subtle) 76%, var(--bg-surface));
+  color: var(--fill-accent);
+  flex-shrink: 0;
+}
+
+.industryMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.industryLabel {
+  font-size: var(--text-size-base);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.industryLabel.selected {
+  color: var(--text-accent);
+}
+
+.industryLabel.default {
+  color: var(--text-primary);
+}
+
+.industryDesc {
+  font-size: var(--text-size-sm);
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.sizeGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.sizeBtn {
+  min-height: 52px;
+  padding: 0 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--bg-surface) 94%, transparent);
+  color: var(--text-primary);
+  font-size: var(--text-size-md);
+  font-weight: 700;
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+.sizeBtn.selected {
+  border-color: color-mix(in srgb, var(--fill-accent) 42%, var(--border-default));
+  background: color-mix(in srgb, var(--fill-accent-subtle) 86%, var(--bg-surface));
+  color: var(--text-accent);
+}
+
+.default {
+  color: var(--text-primary);
+}
+
+.selected {
+  color: var(--text-accent);
+}
+
+.planGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.planCard {
+  --plan-color: var(--fill-accent);
+  --plan-card-border: var(--brand-panel-border);
+  --plan-card-bg: var(--bg-surface);
+  --plan-card-ring: none;
+  padding: 20px 18px;
+  border-radius: calc(var(--surface-radius-tight) + 4px);
+  border: 1px solid var(--plan-card-border);
+  background: var(--plan-card-bg);
+  box-shadow: var(--plan-card-ring);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+
+.planIcon {
+  width: 42px;
+  height: 42px;
+  margin-bottom: 14px;
+  border-radius: var(--radius-lg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--plan-color) 16%, transparent);
+  color: var(--plan-color);
+}
+
+.planTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.planSubtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+}
+
+.planFeatures {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.planFeature {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.planFeatureDot {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+  background: var(--plan-color);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.successStep {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: clamp(28px, 5vw, 42px);
+  margin-bottom: 24px;
+  border-radius: calc(var(--surface-radius) + 6px);
+  border: 1px solid var(--confirmation-shell-border);
+  background: var(--journey-success-bg);
+  box-shadow: var(--brand-panel-shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.successStep::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, color-mix(in srgb, white 8%, transparent) 0%, transparent 20%);
+}
+
+.successIcon {
+  width: 76px;
+  height: 76px;
+  border-radius: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--fill-positive-soft) 78%, var(--bg-surface));
+  border: 1px solid color-mix(in srgb, var(--fill-positive) 24%, var(--border-subtle));
+  color: var(--fill-positive);
+}
+
+.successTitle {
+  margin: 0;
+  font-size: var(--text-size-2xl);
+  font-weight: 700;
+  font-family: var(--font-display);
+  letter-spacing: -0.022em;
+  color: var(--text-primary);
+}
+
+.successDesc {
+  margin: 0;
+  max-width: 520px;
+  font-size: var(--text-size-md);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.completionActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 18px 0 12px;
+}
+
+.completionHint {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.quickLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quickLinkBtn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: calc(var(--surface-radius-tight) + 2px);
+  border: 1px solid var(--brand-panel-border);
+  background: color-mix(in srgb, var(--bg-surface) 88%, var(--fill-accent-subtle));
+  box-shadow: var(--shadow-xs);
+  text-align: left;
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+.quickLinkIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-lg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--fill-accent-subtle) 80%, var(--bg-surface));
+  color: var(--fill-accent);
+  flex-shrink: 0;
+}
+
+.quickLinkBody {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.quickLinkTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.quickLinkDesc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.quickLinkChevron {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.navRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.navBackHidden {
+  visibility: hidden;
+}
+
+.skipLink {
+  margin-top: 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--motion-ease);
+}
+
+.skipLink:hover {
+  color: var(--text-primary);
+}
+
+@media (min-width: 900px) and (max-width: 1280px) {
+  .planGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .planCard:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 899px) {
+  .industryGrid,
+  .planGrid,
+  .sizeGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .page {
+    padding: 24px 16px 20px;
+  }
+
+  .steps {
+    width: 100%;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .stepLabel {
+    display: none;
+  }
+
+  .stepConnector {
+    width: clamp(14px, 8vw, 24px);
+  }
+
+  .card {
+    padding: 22px 18px;
+    border-radius: calc(var(--surface-radius) + 2px);
+  }
+
+  .completionActions,
+  .navRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .skipLink {
+    text-align: center;
+  }
+}

@@ -1,0 +1,740 @@
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  Building2,
+  Copy,
+  GitBranch,
+  Globe,
+  Key,
+  MessageSquare,
+  MonitorCog,
+  ShieldCheck,
+  Smartphone,
+  Users,
+  Zap,
+} from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useForm } from 'react-hook-form';
+import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
+import { api } from '../../shared/api/client';
+import type {
+  AuthSessionResponse,
+  CompanyDirectoryItem,
+  InviteRecord,
+  MembershipRequestRecord,
+  MembershipRequestSubmissionResponse,
+  TeamMemberResponse,
+} from '../../shared/api/contracts';
+import { useCompanyAccess } from '../../shared/hooks/useCompanyAccess';
+import { useCapabilities } from '../../shared/hooks/useCapabilities';
+import { useRole } from '../../shared/hooks/useRole';
+import { useTabsKeyboardNav } from '../../shared/hooks/useTabsKeyboardNav';
+import { copyToClipboard } from '../../shared/lib/browser';
+import { useDocumentTitle } from '../../shared/hooks/useDocumentTitle';
+import { getDeviceId, usePinStore } from '../../shared/stores/pin';
+import { useAuthStore } from '../../shared/stores/auth';
+import { useUIStore, type ThemePack } from '../../shared/stores/ui';
+import { Badge } from '../../shared/ui/Badge';
+import { Button } from '../../shared/ui/Button';
+import { CompanyAccessGate } from '../../shared/ui/CompanyAccessGate';
+import { EmptyState } from '../../shared/ui/EmptyState';
+import { PageHeader } from '../../shared/ui/PageHeader';
+import { Skeleton } from '../../shared/ui/Skeleton';
+import s from './Settings.module.css';
+
+interface OrgData {
+  id: string;
+  name: string;
+  industry: string;
+  timezone: string;
+  currency: string;
+}
+
+interface Pipeline {
+  id: string;
+  name: string;
+  is_default: boolean;
+  stages: Array<{ id: string; name: string; position: number; stage_type: string; color: string }>;
+}
+
+type SectionKey =
+  | 'organization'
+  | 'company-access'
+  | 'appearance'
+  | 'security'
+  | 'pipelines'
+  | 'team'
+  | 'integrations'
+  | 'webhooks'
+  | 'templates'
+  | 'api';
+
+const ACCESS_LABELS: Record<string, string> = {
+  active: 'Активен',
+  pending: 'Ожидает подтверждения',
+  rejected: 'Отклонён',
+  no_company: 'Без компании',
+  anonymous: 'Без авторизации',
+};
+
+const SECTIONS: Array<{ key: SectionKey; label: string; icon: JSX.Element }> = [
+  { key: 'organization', label: 'Организация', icon: <Building2 size={15} /> },
+  { key: 'company-access', label: 'Компания и доступ', icon: <Users size={15} /> },
+  { key: 'appearance', label: 'Оформление', icon: <MonitorCog size={15} /> },
+  { key: 'security', label: 'Безопасность', icon: <ShieldCheck size={15} /> },
+  { key: 'pipelines', label: 'Воронки', icon: <GitBranch size={15} /> },
+  { key: 'team', label: 'Команда', icon: <Users size={15} /> },
+  { key: 'integrations', label: 'Интеграции', icon: <Globe size={15} /> },
+  { key: 'webhooks', label: 'Webhooks', icon: <Zap size={15} /> },
+  { key: 'templates', label: 'Шаблоны', icon: <MessageSquare size={15} /> },
+  { key: 'api', label: 'API токены', icon: <Key size={15} /> },
+];
+
+const THEME_PACKS: Array<{ value: ThemePack; title: string; subtitle: string }> = [
+  { value: 'neutral', title: 'Neutral Premium', subtitle: 'Сдержанный базовый стиль интерфейса' },
+  { value: 'graphite', title: 'Graphite', subtitle: 'Холодный строгий визуальный пакет' },
+  { value: 'sand', title: 'Sand', subtitle: 'Тёплый спокойный рабочий стиль' },
+  { value: 'obsidian', title: 'Obsidian', subtitle: 'Контрастная ночная палитра' },
+  { value: 'enterprise', title: 'Enterprise Hybrid', subtitle: 'Собранный business-режим для команд' },
+];
+
+function extractInviteToken(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  try {
+    const url = new URL(trimmed);
+    return url.searchParams.get('token')?.trim() ?? '';
+  } catch {
+    const matched = trimmed.match(/[?&]token=([^&]+)/);
+    return matched ? decodeURIComponent(matched[1]) : trimmed;
+  }
+}
+
+function OrgSection() {
+  const queryClient = useQueryClient();
+  const setOrg = useAuthStore((state) => state.setOrg);
+  const { data: org } = useQuery<OrgData>({
+    queryKey: ['organization'],
+    queryFn: () => api.get('/organization/'),
+  });
+  const { register, handleSubmit } = useForm<Partial<OrgData>>();
+  const mutation = useMutation({
+    mutationFn: (payload: Partial<OrgData>) => api.patch<OrgData>('/organization/', payload),
+    onSuccess: (updated) => {
+      if (updated) setOrg(updated);
+      queryClient.invalidateQueries({ queryKey: ['organization'] });
+      toast.success('Организация обновлена');
+    },
+  });
+
+  return (
+    <div className={s.section}>
+      <div className={s.sectionHeader}>
+        <div>
+          <div className={s.sectionTitle}>Данные организации</div>
+          <div className={s.sectionSubtitle}>Базовые параметры компании и рабочей среды</div>
+        </div>
+        <Button size="sm" loading={mutation.isPending} onClick={handleSubmit((payload) => mutation.mutate(payload))}>
+          Сохранить
+        </Button>
+      </div>
+      <div className={s.sectionBody}>
+        <div className={s.fieldGrid}>
+          <div className={s.field}>
+            <label className={s.fieldLabel}>Название</label>
+            <input {...register('name')} defaultValue={org?.name ?? ''} className="kort-input" />
+          </div>
+          <div className={s.field}>
+            <label className={s.fieldLabel}>Отрасль</label>
+            <input {...register('industry')} defaultValue={org?.industry ?? ''} className="kort-input" />
+          </div>
+          <div className={s.field}>
+            <label className={s.fieldLabel}>Часовой пояс</label>
+            <input {...register('timezone')} defaultValue={org?.timezone ?? 'Asia/Qyzylorda'} className="kort-input" />
+          </div>
+          <div className={s.field}>
+            <label className={s.fieldLabel}>Валюта</label>
+            <input {...register('currency')} defaultValue={org?.currency ?? 'KZT'} className="kort-input" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CompanyAccessSection() {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const access = useCompanyAccess();
+  const setAuth = useAuthStore((state) => state.setAuth);
+  const setMembership = useAuthStore((state) => state.setMembership);
+  const [search, setSearch] = useState('');
+  const [inviteLink, setInviteLink] = useState('');
+
+  const companiesQuery = useQuery<{ results: CompanyDirectoryItem[] }>({
+    queryKey: ['companies-search', search],
+    enabled: search.trim().length >= 2,
+    queryFn: () => api.get('/companies/search/', { q: search }),
+  });
+
+  const requestsQuery = useQuery<{ results: MembershipRequestRecord[] }>({
+    queryKey: ['membership-requests', 'me'],
+    enabled: access.isAuthenticated,
+    queryFn: () => api.get('/membership-requests/me/'),
+  });
+
+  const requestMutation = useMutation({
+    mutationFn: (companyId: string) => api.post<MembershipRequestSubmissionResponse>('/membership-requests/', { company_id: companyId }),
+    onSuccess: (payload) => {
+      setMembership(payload.membership);
+      queryClient.invalidateQueries({ queryKey: ['membership-requests', 'me'] });
+      toast.success('Заявка отправлена');
+    },
+  });
+
+  const inviteMutation = useMutation({
+    mutationFn: async () => {
+      const token = extractInviteToken(inviteLink);
+      if (!token) throw new Error('Вставьте ссылку или токен');
+      const invite = await api.get<InviteRecord | null>(`/invites/${encodeURIComponent(token)}/`);
+      if (!invite) throw new Error('Ссылка устарела или не найдена');
+      const session = await api.post<AuthSessionResponse | null>(`/invites/${encodeURIComponent(token)}/accept/`);
+      if (!session) throw new Error('Не удалось активировать ссылку');
+      return session;
+    },
+    onSuccess: (session) => {
+      setAuth(session.user, session.org, session.access, session.refresh, session.capabilities, session.role, {
+        membership: session.membership,
+        inviteContext: null,
+      });
+      setInviteLink('');
+      queryClient.invalidateQueries({ queryKey: ['membership-requests', 'me'] });
+      toast.success('Компания подключена');
+    },
+    onError: (cause: any) => {
+      toast.error(cause?.message ?? 'Не удалось применить ссылку');
+    },
+  });
+
+  const latestRequest = requestsQuery.data?.results?.find((item) => item.status === 'pending')
+    ?? requestsQuery.data?.results?.[0]
+    ?? null;
+
+  return (
+    <>
+      <div className={s.section}>
+        <div className={s.sectionHeader}>
+          <div>
+            <div className={s.sectionTitle}>Статус доступа</div>
+            <div className={s.sectionSubtitle}>Компания, роль и текущее состояние membership</div>
+          </div>
+          <Badge bg="var(--bg-surface-inset)" color="var(--text-secondary)">
+            {ACCESS_LABELS[access.state] ?? access.state}
+          </Badge>
+        </div>
+        <div className={s.sectionBody}>
+          {access.isAdmin ? (
+            <div className={s.adminGateCard}>
+              <Building2 size={18} />
+              <div>
+                <div className={s.adminGateTitle}>Компания уже активна</div>
+                <div className={s.adminGateText}>
+                  Вы управляете компанией «{access.companyName ?? 'Текущая организация'}». Ссылки и заявки вынесены в раздел команды.
+                </div>
+              </div>
+              <Button size="sm" onClick={() => navigate('/admin/team')}>Команда</Button>
+            </div>
+          ) : (
+            <CompanyAccessGate compact />
+          )}
+
+          <div className={s.fieldGrid}>
+            <div className={s.field}>
+              <label className={s.fieldLabel}>Текущая компания</label>
+              <div className={s.apiKeyField}>{access.companyName ?? 'Не выбрана'}</div>
+            </div>
+            <div className={s.field}>
+              <label className={s.fieldLabel}>Последняя заявка</label>
+              <div className={s.apiKeyField}>
+                {latestRequest ? `${latestRequest.company_name} • ${latestRequest.status}` : 'Заявок нет'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {!access.isAdmin && !access.hasCompanyAccess && (
+        <>
+          <div className={s.section}>
+            <div className={s.sectionHeader}>
+              <div>
+                <div className={s.sectionTitle}>Найти компанию</div>
+                <div className={s.sectionSubtitle}>Введите название компании и отправьте заявку на подключение</div>
+              </div>
+            </div>
+            <div className={s.sectionBody}>
+              <div className={s.fieldFull}>
+                <label className={s.fieldLabel}>Название компании</label>
+                <input
+                  className="kort-input"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Demo Company"
+                />
+                <div className={s.fieldHint}>Поиск запускается после двух символов.</div>
+              </div>
+
+              {search.trim().length < 2 && (
+                <EmptyState
+                  icon={<Building2 size={18} />}
+                  title="Начните поиск"
+                  description="Введите название компании, чтобы отправить заявку."
+                />
+              )}
+
+              {search.trim().length >= 2 && companiesQuery.isLoading && <Skeleton height={120} />}
+
+              {companiesQuery.data?.results?.length ? (
+                <div className={s.teamTableWrap}>
+                  <table className={s.teamTable}>
+                    <tbody>
+                      {companiesQuery.data.results.map((company) => (
+                        <tr key={company.id}>
+                          <td>
+                            <div className={s.memberCell}>
+                              <div className={s.memberAvatar}>{company.name.charAt(0)}</div>
+                              <div>
+                                <div className={s.memberName}>{company.name}</div>
+                                <div className={s.memberEmail}>{company.industry ?? 'Компания в каталоге'}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <Button size="sm" loading={requestMutation.isPending} onClick={() => requestMutation.mutate(company.id)}>
+                              Подать заявку
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className={s.section}>
+            <div className={s.sectionHeader}>
+              <div>
+                <div className={s.sectionTitle}>Реферальная ссылка</div>
+                <div className={s.sectionSubtitle}>По ссылке подтверждение администратора не требуется</div>
+              </div>
+            </div>
+            <div className={s.sectionBody}>
+              <div className={s.fieldFull}>
+                <label className={s.fieldLabel}>Ссылка или токен</label>
+                <div className={s.apiKeyRow}>
+                  <input
+                    className={`kort-input ${s.apiKeyInput}`}
+                    value={inviteLink}
+                    onChange={(event) => setInviteLink(event.target.value)}
+                    placeholder="https://.../auth/accept-invite?token=..."
+                  />
+                  <Button size="sm" loading={inviteMutation.isPending} onClick={() => inviteMutation.mutate()}>
+                    Подключить
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+function TeamSection() {
+  const queryClient = useQueryClient();
+  const { isAdmin } = useRole();
+  const { data: team, isLoading } = useQuery<{ results: TeamMemberResponse[] }>({
+    queryKey: ['team'],
+    queryFn: () => api.get('/users/team/'),
+  });
+  const setRole = useMutation({
+    mutationFn: ({ userId, role }: { userId: string; role: string }) => api.patch(`/users/${userId}/role/`, { role }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['team'] });
+      toast.success('Роль обновлена');
+    },
+  });
+
+  return (
+    <div className={s.section}>
+      <div className={s.sectionHeader}>
+        <div>
+          <div className={s.sectionTitle}>Команда</div>
+          <div className={s.sectionSubtitle}>Активные сотрудники компании</div>
+        </div>
+        <Button size="sm" onClick={() => window.location.assign('/admin/team')}>Приглашения</Button>
+      </div>
+
+      <div className={s.teamTableWrap}>
+        <table className={s.teamTable}>
+          <tbody>
+            {isLoading
+              ? [1, 2, 3].map((item) => (
+                <tr key={item}>
+                  <td><Skeleton height={16} /></td>
+                </tr>
+              ))
+              : (team?.results ?? []).map((member) => (
+                <tr key={member.id}>
+                  <td>
+                    <div className={s.memberCell}>
+                      <div className={s.memberAvatar}>{member.full_name.charAt(0)}</div>
+                      <div>
+                        <div className={s.memberName}>{member.full_name}</div>
+                        <div className={s.memberEmail}>{member.email}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <Badge
+                      bg={member.status === 'active' ? 'var(--fill-positive-soft)' : 'var(--bg-surface-inset)'}
+                      color={member.status === 'active' ? 'var(--fill-positive-text)' : 'var(--text-secondary)'}
+                    >
+                      {member.status}
+                    </Badge>
+                  </td>
+                  <td>
+                    {isAdmin ? (
+                      <select
+                        value={member.role ?? 'viewer'}
+                        onChange={(event) => setRole.mutate({ userId: member.id, role: event.target.value })}
+                        className={`kort-input ${s.roleSelect}`}
+                      >
+                        <option value="admin">admin</option>
+                        <option value="manager">manager</option>
+                        <option value="viewer">viewer</option>
+                      </select>
+                    ) : (
+                      <span className={s.roleText}>{member.role ?? 'viewer'}</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function PipelinesSection() {
+  const { data: pipelines, isLoading } = useQuery<Pipeline[]>({
+    queryKey: ['pipelines'],
+    queryFn: () => api.get('/pipelines/'),
+    select: (data: any) => data.results ?? data,
+  });
+  const pipeline = pipelines?.[0] ?? null;
+
+  return (
+    <div className={s.section}>
+      <div className={s.sectionHeader}>
+        <div>
+          <div className={s.sectionTitle}>Воронки продаж</div>
+          <div className={s.sectionSubtitle}>Структура этапов уже подготовлена под backend</div>
+        </div>
+      </div>
+      <div className={s.sectionBody}>
+        {isLoading && <Skeleton height={120} />}
+        {!isLoading && !pipeline && (
+          <EmptyState
+            icon={<GitBranch size={18} />}
+            title="Воронка не найдена"
+            description="Подключите backend или добавьте структуру позже."
+          />
+        )}
+        {pipeline?.stages?.map((stage) => (
+          <div key={stage.id} className={s.stageRow}>
+            <div className={s.stageDot} style={{ '--stage-color': stage.color } as CSSProperties} />
+            <span className={s.stageName}>{stage.name}</span>
+            <span className={s.roleText}>{stage.stage_type}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AppearanceSection() {
+  const themePack = useUIStore((state) => state.themePack);
+  const setThemePack = useUIStore((state) => state.setThemePack);
+
+  return (
+    <div className={s.section}>
+      <div className={s.sectionHeader}>
+        <div>
+          <div className={s.sectionTitle}>Визуальный пакет</div>
+          <div className={s.sectionSubtitle}>Меняет только стиль интерфейса, без связи с ландшафтом или SPA-логикой</div>
+        </div>
+      </div>
+      <div className={s.sectionBody}>
+        <div className={s.themeModeRow}>
+          {THEME_PACKS.map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              className={`${s.themeModeBtn} ${themePack === item.value ? s.themeModeBtnActive : ''}`}
+              onClick={() => setThemePack(item.value)}
+            >
+              {item.title}
+            </button>
+          ))}
+        </div>
+        <div className={s.fieldHint}>
+          {THEME_PACKS.find((item) => item.value === themePack)?.subtitle}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SecuritySection() {
+  const pin = usePinStore((state) => state.pin);
+  const isTrustedDevice = usePinStore((state) => state.isTrustedDevice);
+  const setPin = usePinStore((state) => state.setPin);
+  const clearPin = usePinStore((state) => state.clearPin);
+  const [nextPin, setNextPin] = useState('');
+  const [showForm, setShowForm] = useState(false);
+
+  return (
+    <div className={s.section}>
+      <div className={s.sectionHeader}>
+        <div>
+          <div className={s.sectionTitle}>Безопасность входа</div>
+          <div className={s.sectionSubtitle}>PIN-код и доверенное устройство</div>
+        </div>
+      </div>
+      <div className={s.sectionBody}>
+        <div className={s.securityCard}>
+          <div className={s.securityCardIcon}><Smartphone size={18} /></div>
+          <div className={s.securityCardBody}>
+            <div className={s.securityCardTitle}>Устройство</div>
+            <div className={s.securityCardMeta}>ID: {getDeviceId().slice(0, 18)}...</div>
+            <div className={s.securityCardStatus}>
+              {isTrustedDevice
+                ? <span className={s.statusTrusted}>Доверенное устройство</span>
+                : <span className={s.statusUntrusted}>Сначала выполните обычный вход</span>}
+            </div>
+          </div>
+        </div>
+
+        <div className={s.securityCard}>
+          <div className={s.securityCardIcon}><ShieldCheck size={18} /></div>
+          <div className={s.securityCardBody}>
+            <div className={s.securityCardTitle}>PIN-код</div>
+            <div className={s.securityCardMeta}>{pin ? 'PIN установлен' : 'PIN не установлен'}</div>
+            <div className={s.securityActions}>
+              <button className={s.securityBtn} onClick={() => setShowForm((state) => !state)}>
+                {pin ? 'Изменить PIN' : 'Установить PIN'}
+              </button>
+              {pin && (
+                <button
+                  className={`${s.securityBtn} ${s.securityBtnDanger}`}
+                  onClick={() => {
+                    clearPin();
+                    toast.success('PIN удалён');
+                  }}
+                >
+                  Удалить PIN
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {showForm && (
+          <div className={s.pinSetupCard}>
+            <div className={s.pinSetupFields}>
+              <div className={s.field}>
+                <label className={s.fieldLabel}>Новый PIN</label>
+                <input
+                  className="kort-input"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={nextPin}
+                  onChange={(event) => setNextPin(event.target.value.replace(/\D/g, '').slice(0, 4))}
+                />
+              </div>
+            </div>
+            <div className={s.pinSetupActions}>
+              <button
+                className={s.securityBtn}
+                onClick={() => {
+                  if (nextPin.length !== 4) {
+                    toast.error('PIN должен содержать 4 цифры');
+                    return;
+                  }
+                  setPin(nextPin);
+                  setShowForm(false);
+                  setNextPin('');
+                  toast.success('PIN сохранён');
+                }}
+              >
+                Сохранить
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ApiSection() {
+  const org = useAuthStore((state) => state.org);
+  const token = `kort_${org?.slug ?? 'workspace'}_${(org?.id ?? 'org').replace(/[^a-z0-9]/gi, '').slice(0, 10).toLowerCase()}_demo`;
+
+  return (
+    <div className={s.section}>
+      <div className={s.sectionHeader}>
+        <div>
+          <div className={s.sectionTitle}>API токен</div>
+          <div className={s.sectionSubtitle}>Mock-контракт для будущего backend</div>
+        </div>
+      </div>
+      <div className={s.sectionBody}>
+        <div className={s.apiKeyRow}>
+          <div className={s.apiKeyField}>{token}</div>
+          <Button
+            size="sm"
+            icon={<Copy size={13} />}
+            onClick={async () => {
+              const copied = await copyToClipboard(token);
+              toast[copied ? 'success' : 'error'](copied ? 'Токен скопирован' : 'Не удалось скопировать токен');
+            }}
+          >
+            Копировать
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StubSection({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <div className={s.section}>
+      <div className={s.sectionHeader}>
+        <div>
+          <div className={s.sectionTitle}>{title}</div>
+          <div className={s.sectionSubtitle}>{subtitle}</div>
+        </div>
+      </div>
+      <div className={s.sectionBody}>
+        <div className={s.adminGateCard}>
+          <MessageSquare size={18} />
+          <div>
+            <div className={s.adminGateTitle}>Каркас секции сохранён</div>
+            <div className={s.adminGateText}>
+              Базовая структура уже подготовлена и ждёт подключения полноценного backend API для этой области.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function SettingsPage() {
+  useDocumentTitle('Настройки');
+  const params = useParams();
+  const navigate = useNavigate();
+  const access = useCompanyAccess();
+  const capabilities = useCapabilities();
+
+  const visibleSections = useMemo(() => SECTIONS.filter((item) => {
+    switch (item.key) {
+      case 'company-access':
+      case 'appearance':
+      case 'security':
+        return true;
+      case 'organization':
+        return access.isAdmin && access.hasCompanyAccess;
+      case 'pipelines':
+      case 'templates':
+        return access.hasCompanyAccess;
+      case 'team':
+        return capabilities.canManageTeam;
+      case 'integrations':
+        return capabilities.canManageIntegrations;
+      case 'webhooks':
+        return capabilities.canRunAutomations;
+      case 'api':
+        return capabilities.canViewAudit;
+      default:
+        return false;
+    }
+  }), [access.hasCompanyAccess, access.isAdmin, capabilities.canManageIntegrations, capabilities.canManageTeam, capabilities.canRunAutomations, capabilities.canViewAudit]);
+
+  const requestedSection = (params.section as SectionKey | undefined) ?? 'company-access';
+  const defaultSection = visibleSections[0]?.key ?? 'company-access';
+  const section = visibleSections.some((item) => item.key === requestedSection) ? requestedSection : defaultSection;
+  const sectionKeys = visibleSections.map((item) => item.key);
+  const onTabKeyDown = useTabsKeyboardNav(sectionKeys, section, (next) => navigate(next === 'company-access' ? '/settings' : `/settings/${next}`));
+
+  useEffect(() => {
+    const expectedPath = section === 'company-access' ? '/settings' : `/settings/${section}`;
+    if (`/${params.section ?? ''}` === `/${section}` && params.section) return;
+    if (!params.section && section === 'company-access') return;
+    navigate(expectedPath, { replace: true });
+  }, [navigate, params.section, section]);
+
+  return (
+    <div className={s.page}>
+      <PageHeader
+        title="Настройки"
+        subtitle="Организация, доступы, безопасность и подготовка к backend"
+      />
+
+      <div className={s.navTabs} role="tablist" aria-label="Разделы настроек" onKeyDown={onTabKeyDown}>
+        {visibleSections.map((item) => (
+          <button
+            key={item.key}
+            role="tab"
+            tabIndex={section === item.key ? 0 : -1}
+            aria-selected={section === item.key}
+            className={`${s.navTab} ${section === item.key ? s.active : ''}`}
+            onClick={() => navigate(item.key === 'company-access' ? '/settings' : `/settings/${item.key}`)}
+          >
+            {item.icon}
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={section}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.14 }}
+        >
+          {section === 'organization' && <OrgSection />}
+          {section === 'company-access' && <CompanyAccessSection />}
+          {section === 'appearance' && <AppearanceSection />}
+          {section === 'security' && <SecuritySection />}
+          {section === 'pipelines' && <PipelinesSection />}
+          {section === 'team' && <TeamSection />}
+          {section === 'api' && <ApiSection />}
+          {section === 'integrations' && <StubSection title="Интеграции" subtitle="Каталог внешних подключений и ключей" />}
+          {section === 'webhooks' && <StubSection title="Webhooks" subtitle="Доставка событий и автоматизации" />}
+          {section === 'templates' && <StubSection title="Шаблоны сообщений" subtitle="Повторно используемые тексты и follow-up сценарии" />}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}

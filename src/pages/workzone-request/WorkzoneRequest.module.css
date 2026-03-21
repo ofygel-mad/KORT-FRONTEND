@@ -1,0 +1,818 @@
+.page {
+  --intake-ink: var(--text-primary);
+  --intake-soft: var(--text-secondary);
+  --intake-muted: var(--text-tertiary);
+  --intake-accent: var(--fill-accent);
+  --intake-accent-strong: var(--text-accent);
+  --intake-accent-soft: color-mix(in srgb, var(--fill-accent-soft) 76%, white 24%);
+  --intake-surface: color-mix(in srgb, var(--bg-surface-elevated) 88%, white 12%);
+  --intake-surface-soft: color-mix(in srgb, var(--bg-surface) 86%, white 14%);
+  --intake-surface-strong: color-mix(in srgb, var(--bg-surface-elevated) 80%, white 20%);
+  --intake-border: color-mix(in srgb, var(--fill-accent) 14%, var(--border-subtle));
+  --intake-border-strong: color-mix(in srgb, var(--fill-accent) 22%, var(--border-default));
+  --intake-shadow: var(--brand-panel-shadow-strong);
+  --intake-input-shadow: 0 0 0 4px color-mix(in srgb, var(--fill-accent) 10%, transparent);
+  min-height: 100dvh;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 12%, rgba(255, 255, 255, 0.72), transparent 26%),
+    radial-gradient(circle at 80% 18%, color-mix(in srgb, var(--fill-info) 16%, transparent), transparent 22%),
+    radial-gradient(circle at 76% 82%, color-mix(in srgb, var(--fill-accent) 16%, transparent), transparent 22%),
+    linear-gradient(
+      148deg,
+      color-mix(in srgb, var(--fill-accent-soft) 36%, white 64%) 0%,
+      color-mix(in srgb, var(--bg-surface) 80%, white 20%) 48%,
+      color-mix(in srgb, var(--fill-accent-soft) 22%, white 78%) 100%
+    );
+  color: var(--intake-ink);
+}
+
+.backdropOrb,
+.backdropGrid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.backdropOrb {
+  background:
+    radial-gradient(circle at 18% 24%, rgba(255, 255, 255, 0.42), transparent 22%),
+    radial-gradient(circle at 70% 18%, color-mix(in srgb, var(--fill-info) 12%, transparent), transparent 20%),
+    radial-gradient(circle at 68% 76%, color-mix(in srgb, var(--fill-accent) 10%, transparent), transparent 24%);
+  filter: blur(12px);
+}
+
+.backdropGrid {
+  opacity: 0.22;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--fill-accent) 10%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--fill-accent) 10%, transparent) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.88) 20%, rgba(0, 0, 0, 0.88) 76%, transparent 100%);
+}
+
+.shell {
+  position: relative;
+  z-index: 1;
+  width: min(1240px, 100%);
+  margin: 0 auto;
+  padding: 28px 28px 40px;
+}
+
+.stage {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.9fr) minmax(0, 1.1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.story,
+.formShell {
+  position: relative;
+  border: 1px solid color-mix(in srgb, white 48%, var(--intake-border));
+  backdrop-filter: blur(18px);
+  box-shadow: var(--intake-shadow);
+}
+
+.story {
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 28px;
+  border-radius: 32px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.76), color-mix(in srgb, var(--intake-surface-soft) 82%, transparent)),
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.5), transparent 34%);
+}
+
+.kicker,
+.successKicker {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--fill-accent) 16%, transparent);
+  background: color-mix(in srgb, white 74%, var(--fill-accent-soft));
+  color: var(--intake-accent-strong);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.title,
+.successTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  line-height: 0.96;
+  letter-spacing: -0.055em;
+}
+
+.title {
+  font-size: clamp(38px, 5.4vw, 62px);
+}
+
+.storyGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.storyCard,
+.storyCardAccent {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 210px;
+  padding: 20px;
+  border-radius: 26px;
+  border: 1px solid var(--intake-border);
+  box-shadow: var(--brand-panel-shadow);
+}
+
+.storyCard {
+  background: color-mix(in srgb, var(--intake-surface) 88%, white 12%);
+}
+
+.storyCardAccent {
+  color: var(--text-inverse);
+  background:
+    radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.1), transparent 28%),
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--fill-accent) 84%, black 16%) 0%,
+      color-mix(in srgb, var(--fill-accent) 70%, white 30%) 48%,
+      color-mix(in srgb, var(--fill-accent) 52%, white 48%) 100%
+    );
+}
+
+.storyHead {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.storyList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--intake-soft);
+  line-height: 1.62;
+}
+
+.storyCardAccent .storyList {
+  color: inherit;
+}
+
+.storyList div {
+  position: relative;
+  padding-left: 16px;
+}
+
+.storyList div::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.5;
+}
+
+.formShell {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px;
+  border-radius: 34px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), color-mix(in srgb, var(--intake-surface-soft) 88%, transparent)),
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.32), transparent 32%);
+}
+
+.formHeader,
+.panelHead,
+.footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.formTitle {
+  color: var(--intake-ink);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.formStamp {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 20px;
+  border: 1px solid var(--intake-border);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), color-mix(in srgb, var(--fill-accent-soft) 44%, white 56%));
+  color: var(--intake-accent-strong);
+  font-size: 18px;
+  font-weight: 800;
+  box-shadow: var(--brand-panel-shadow);
+}
+
+.panel,
+.itemCard,
+.preferenceBlock,
+.calendarPopover,
+.footerNote {
+  border: 1px solid var(--intake-border);
+  background: color-mix(in srgb, var(--intake-surface) 92%, white 8%);
+  box-shadow: var(--surface-shadow-rest);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 28px;
+}
+
+.panelTitle {
+  color: var(--intake-ink);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field > span,
+.preferenceLabel {
+  color: var(--intake-soft);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.fieldWide {
+  grid-column: 1 / -1;
+}
+
+.input,
+.select,
+.textarea,
+.inputWithIcon,
+.calendarTrigger {
+  width: 100%;
+  border-radius: 18px;
+  border: 1px solid var(--intake-border);
+  background: color-mix(in srgb, white 82%, var(--intake-surface-strong));
+  color: var(--intake-ink);
+  font: inherit;
+  outline: none;
+  transition:
+    border-color var(--motion-duration-fast) var(--motion-ease-standard),
+    box-shadow var(--motion-duration-fast) var(--motion-ease-standard),
+    transform var(--motion-duration-fast) var(--motion-ease-standard),
+    background var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus,
+.inputWithIcon:focus-within,
+.calendarTrigger:focus-visible {
+  border-color: var(--intake-border-strong);
+  box-shadow: var(--intake-input-shadow);
+}
+
+.input,
+.select,
+.calendarTrigger {
+  min-height: 54px;
+  padding: 0 16px;
+}
+
+.textarea {
+  min-height: 120px;
+  padding: 14px 16px;
+  resize: vertical;
+  line-height: 1.65;
+}
+
+.select {
+  appearance: none;
+}
+
+.inputWithIcon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 0 16px;
+  color: var(--intake-soft);
+}
+
+.inputBare {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  outline: none;
+}
+
+.preferenceBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 22px;
+}
+
+.toggleRow,
+.choiceRow,
+.successActions,
+.successMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.toggleBtn,
+.choiceBtn,
+.ghostBtn,
+.removeBtn,
+.submitBtn,
+.closeWindowBtn,
+.secondarySceneBtn,
+.calendarNavBtn,
+.calendarClearBtn,
+.calendarDay {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    transform var(--motion-duration-fast) var(--motion-ease-standard),
+    box-shadow var(--motion-duration-fast) var(--motion-ease-standard),
+    border-color var(--motion-duration-fast) var(--motion-ease-standard),
+    background var(--motion-duration-fast) var(--motion-ease-standard),
+    color var(--motion-duration-fast) var(--motion-ease-standard),
+    opacity var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.toggleBtn,
+.choiceBtn {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--intake-border);
+  background: color-mix(in srgb, white 76%, var(--intake-surface-soft));
+  color: var(--intake-soft);
+  font-weight: 700;
+}
+
+.toggleBtnActive,
+.choiceBtnActive {
+  border-color: color-mix(in srgb, var(--fill-accent) 22%, transparent);
+  background: linear-gradient(140deg, color-mix(in srgb, var(--fill-accent-soft) 62%, transparent), color-mix(in srgb, white 60%, var(--fill-accent-soft)));
+  color: var(--intake-accent-strong);
+  box-shadow: var(--brand-panel-shadow);
+}
+
+.choiceBtn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.itemStack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.itemCard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 24px;
+}
+
+.itemHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.itemHead strong {
+  color: var(--intake-accent-strong);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ghostBtn,
+.removeBtn,
+.submitBtn,
+.closeWindowBtn,
+.secondarySceneBtn {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 16px;
+  font-weight: 700;
+}
+
+.ghostBtn,
+.removeBtn,
+.secondarySceneBtn {
+  border: 1px solid var(--intake-border);
+  background: color-mix(in srgb, white 74%, var(--intake-surface-soft));
+  color: var(--intake-soft);
+}
+
+.removeBtn {
+  width: 44px;
+  padding: 0;
+}
+
+.submitBtn,
+.closeWindowBtn {
+  border: 1px solid color-mix(in srgb, var(--fill-accent) 24%, transparent);
+  color: var(--text-inverse);
+  background: linear-gradient(
+    140deg,
+    color-mix(in srgb, var(--fill-accent) 78%, black 22%) 0%,
+    color-mix(in srgb, var(--fill-accent) 62%, white 38%) 42%,
+    color-mix(in srgb, var(--fill-accent) 42%, white 58%) 100%
+  );
+  box-shadow: var(--brand-panel-shadow);
+}
+
+.toggleBtn:hover,
+.choiceBtn:hover,
+.ghostBtn:hover,
+.removeBtn:hover,
+.submitBtn:hover,
+.closeWindowBtn:hover,
+.secondarySceneBtn:hover,
+.calendarNavBtn:hover,
+.calendarClearBtn:hover,
+.calendarDay:hover {
+  transform: translateY(-1px);
+}
+
+.submitBtn:disabled {
+  opacity: 0.56;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.calendarField {
+  z-index: 2;
+}
+
+.calendarTrigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-start;
+  color: var(--intake-soft);
+}
+
+.calendarPopover {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  width: min(340px, 100%);
+  padding: 16px;
+  border-radius: 24px;
+  backdrop-filter: blur(20px);
+}
+
+.calendarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.calendarHeader strong {
+  color: var(--intake-ink);
+  font-size: 15px;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.calendarNavBtn {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid var(--intake-border);
+  background: color-mix(in srgb, white 72%, var(--intake-surface-soft));
+  color: var(--intake-soft);
+}
+
+.calendarWeekdays,
+.calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.calendarWeekdays {
+  margin-bottom: 10px;
+}
+
+.calendarWeekdays span {
+  display: grid;
+  place-items: center;
+  color: var(--intake-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.calendarDay {
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid var(--intake-border);
+  background: color-mix(in srgb, white 80%, var(--intake-surface-soft));
+  color: var(--intake-ink);
+  font-weight: 700;
+}
+
+.calendarDayMuted {
+  opacity: 0.42;
+}
+
+.calendarDayToday {
+  border-color: color-mix(in srgb, var(--fill-accent) 22%, transparent);
+}
+
+.calendarDayActive {
+  border-color: color-mix(in srgb, var(--fill-accent) 28%, transparent);
+  background: linear-gradient(140deg, color-mix(in srgb, var(--fill-accent-soft) 64%, transparent), color-mix(in srgb, white 58%, var(--fill-accent-soft)));
+  color: var(--intake-accent-strong);
+}
+
+.calendarActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.calendarClearBtn {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--intake-border);
+  background: color-mix(in srgb, white 76%, var(--intake-surface-soft));
+  color: var(--intake-soft);
+  font-weight: 700;
+}
+
+.footer {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.footerNote {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  color: var(--intake-soft);
+}
+
+.footerNote strong,
+.footerNote span {
+  display: block;
+}
+
+.footerNote strong {
+  margin-bottom: 2px;
+  font-size: 13px;
+}
+
+.footerNote span {
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.loading {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--fill-accent-soft) 34%, white 66%) 0%,
+    color-mix(in srgb, var(--bg-surface) 84%, white 16%) 100%
+  );
+  color: var(--intake-soft);
+}
+
+.successScene {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: radial-gradient(circle at center, rgba(18, 15, 13, 0.32), rgba(7, 5, 3, 0.88));
+}
+
+.successVideo,
+.successFog,
+.successGlow {
+  position: absolute;
+  inset: 0;
+}
+
+.successVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(1.08);
+  filter: saturate(0.8) contrast(1.05) brightness(0.48);
+  transition: opacity 1800ms ease, transform 3600ms ease;
+}
+
+.successVideoReady {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.successFog {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.38), transparent 30%),
+    linear-gradient(180deg, rgba(242, 236, 228, 0.68) 0%, rgba(15, 12, 10, 0.52) 100%);
+  backdrop-filter: blur(26px);
+  opacity: 1;
+  transition: opacity 1800ms ease, backdrop-filter 1800ms ease;
+}
+
+.successFogReady {
+  opacity: 0.8;
+  backdrop-filter: blur(8px);
+}
+
+.successGlow {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.22), transparent 18%),
+    radial-gradient(circle at 50% 58%, color-mix(in srgb, var(--fill-accent) 24%, transparent), transparent 28%);
+  opacity: 0;
+  transition: opacity 2200ms ease 220ms;
+}
+
+.successGlowReady {
+  opacity: 1;
+}
+
+.successPanel {
+  position: relative;
+  z-index: 1;
+  width: min(620px, calc(100% - 28px));
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 28px;
+  border-radius: 32px;
+  border: 1px solid color-mix(in srgb, white 20%, transparent);
+  background: color-mix(in srgb, black 56%, rgba(255, 255, 255, 0.06));
+  color: var(--text-inverse);
+  box-shadow: 0 42px 120px -56px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(16px);
+  opacity: 0;
+  transform: translateY(22px) scale(0.985);
+  transition:
+    opacity 720ms cubic-bezier(.21, 1, .23, 1) 180ms,
+    transform 720ms cubic-bezier(.21, 1, .23, 1) 180ms;
+}
+
+.successPanelReady {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.successTitle {
+  font-size: clamp(30px, 5vw, 48px);
+}
+
+.successText {
+  margin: 0;
+  color: color-mix(in srgb, var(--text-inverse) 84%, transparent);
+  line-height: 1.7;
+}
+
+.successMeta span {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, white 14%, transparent);
+  background: color-mix(in srgb, white 8%, transparent);
+  color: color-mix(in srgb, var(--text-inverse) 90%, transparent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.secondarySceneBtn {
+  color: color-mix(in srgb, var(--text-inverse) 88%, transparent);
+  background: color-mix(in srgb, white 8%, transparent);
+  border-color: color-mix(in srgb, white 14%, transparent);
+}
+
+@media (max-width: 1080px) {
+  .stage {
+    grid-template-columns: 1fr;
+  }
+
+  .story {
+    position: static;
+  }
+}
+
+@media (max-width: 760px) {
+  .shell {
+    padding: 16px 14px 22px;
+  }
+
+  .story,
+  .formShell {
+    padding: 18px;
+    border-radius: 28px;
+  }
+
+  .grid,
+  .storyGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .formHeader,
+  .footer,
+  .panelHead {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toggleRow,
+  .choiceRow,
+  .successActions {
+    flex-direction: column;
+  }
+
+  .toggleBtn,
+  .choiceBtn,
+  .closeWindowBtn,
+  .secondarySceneBtn,
+  .submitBtn {
+    width: 100%;
+  }
+
+  .formStamp {
+    width: 48px;
+    height: 48px;
+  }
+
+  .calendarPopover {
+    width: 100%;
+  }
+
+  .successPanel {
+    padding: 20px;
+  }
+}

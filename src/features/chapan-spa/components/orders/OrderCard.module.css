@@ -1,0 +1,227 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  border-radius: var(--surface-radius-tight);
+  background: var(--card-bg);
+  box-shadow: var(--surface-shadow-rest);
+  transition:
+    border-color var(--motion-fast) var(--motion-ease),
+    box-shadow var(--motion-fast) var(--motion-ease);
+}
+
+.card:hover {
+  border-color: color-mix(in srgb, var(--fill-accent) 18%, var(--card-border));
+  box-shadow: var(--shadow-sm);
+}
+
+.cardOverdue {
+  border-color: color-mix(in srgb, var(--fill-negative) 26%, var(--card-border));
+}
+
+.cardVip {
+  border-color: color-mix(in srgb, var(--fill-accent) 24%, var(--card-border));
+}
+
+.cardBlocked {
+  border-color: color-mix(in srgb, var(--fill-warning) 26%, var(--card-border));
+}
+
+.cardBody {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.topLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.orderNum {
+  color: var(--text-accent);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.priorityBadge,
+.statusBadge,
+.payBadge,
+.dueBadge,
+.prodBadge,
+.blockedBadge,
+.noDueBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 22px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.client {
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.items {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.bottom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.dueBadge {
+  color: var(--text-secondary);
+  background: var(--bg-surface-inset);
+  border-color: var(--border-subtle);
+}
+
+.dueOverdue {
+  color: var(--fill-negative-text);
+  background: var(--fill-negative-soft);
+  border-color: color-mix(in srgb, var(--fill-negative) 24%, transparent);
+}
+
+.dueToday {
+  color: var(--fill-negative-text);
+  background: var(--fill-negative-soft);
+  border-color: color-mix(in srgb, var(--fill-negative) 22%, transparent);
+}
+
+.dueTomorrow {
+  color: var(--fill-warning-text);
+  background: var(--fill-warning-soft);
+  border-color: color-mix(in srgb, var(--fill-warning) 22%, transparent);
+}
+
+.noDueBadge {
+  color: var(--fill-warning-text);
+  background: color-mix(in srgb, var(--fill-warning-soft) 70%, transparent);
+  border-color: color-mix(in srgb, var(--fill-warning) 22%, transparent);
+}
+
+.amount {
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.amountPaid {
+  color: var(--fill-positive-text);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--bg-surface) 94%, transparent);
+}
+
+.actionBtn {
+  flex: 1;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--fill-accent) 24%, transparent);
+  border-radius: 10px;
+  background: var(--fill-accent-soft);
+  color: var(--text-accent);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform var(--motion-fast) var(--motion-ease),
+    box-shadow var(--motion-fast) var(--motion-ease);
+}
+
+.actionBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.actionBtnPositive {
+  border-color: color-mix(in srgb, var(--fill-positive) 24%, transparent);
+  background: var(--fill-positive-soft);
+  color: var(--fill-positive-text);
+}
+
+.actionBtnWarning {
+  border-color: color-mix(in srgb, var(--fill-warning) 24%, transparent);
+  background: var(--fill-warning-soft);
+  color: var(--fill-warning-text);
+}
+
+.toneMuted {
+  color: var(--text-tertiary);
+  background: var(--bg-surface-inset);
+  border-color: var(--border-subtle);
+}
+
+.toneInfo {
+  color: var(--fill-info-text);
+  background: var(--fill-info-soft);
+  border-color: color-mix(in srgb, var(--fill-info) 24%, transparent);
+}
+
+.toneWarning {
+  color: var(--fill-warning-text);
+  background: var(--fill-warning-soft);
+  border-color: color-mix(in srgb, var(--fill-warning) 24%, transparent);
+}
+
+.toneDanger {
+  color: var(--fill-negative-text);
+  background: var(--fill-negative-soft);
+  border-color: color-mix(in srgb, var(--fill-negative) 24%, transparent);
+}
+
+.toneSuccess {
+  color: var(--fill-positive-text);
+  background: var(--fill-positive-soft);
+  border-color: color-mix(in srgb, var(--fill-positive) 24%, transparent);
+}
+
+.toneAccent {
+  color: var(--text-accent);
+  background: var(--fill-accent-soft);
+  border-color: color-mix(in srgb, var(--fill-accent) 24%, transparent);
+}

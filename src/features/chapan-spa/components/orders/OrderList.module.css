@@ -1,0 +1,38 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.empty {
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 24px;
+  text-align: center;
+  border: 1px dashed color-mix(in srgb, var(--fill-accent) 18%, var(--border-subtle));
+  border-radius: var(--radius-2xl);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--rc-detail-surface-bg) 86%, transparent) 0%,
+    color-mix(in srgb, var(--fill-accent-soft) 18%, transparent) 100%
+  );
+  box-shadow: var(--brand-panel-shadow);
+}
+
+.emptyTitle {
+  color: var(--text-secondary);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.emptySub {
+  max-width: 280px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1.6;
+}

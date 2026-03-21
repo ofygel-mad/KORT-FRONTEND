@@ -1,0 +1,74 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { WorkspaceCanvas } from '../../features/workspace/components/WorkspaceCanvas';
+import { WorkspaceAddMenu } from '../../features/workspace/components/WorkspaceAddMenu';
+import { WorkspaceSpotlight } from '../../features/workspace/components/WorkspaceSpotlight';
+import { useWorkspaceStore } from '../../features/workspace/model/store';
+import { WorkspaceLock } from '../../features/auth/WorkspaceLock';
+import { resolvePostAuthPath } from '../../features/auth/navigation';
+import { useAuthStore } from '../../shared/stores/auth';
+import { useUIStore } from '../../shared/stores/ui';
+import styles from './Dashboard.module.css';
+
+export default function DashboardPage() {
+  const navigate = useNavigate();
+  const [spotlightOpen, setSpotlightOpen] = useState(false);
+  const addTile = useWorkspaceStore((state) => state.addTile);
+  const isUnlocked = useAuthStore((state) => state.isUnlocked);
+  const hasCompanyAccess = useAuthStore((state) => state.membership.status === 'active');
+  const snapshotScope = useAuthStore((state) => state.membership.companyId);
+  const workspaceAddMenuOpen = useUIStore((s) => s.workspaceAddMenuOpen);
+  const closeWorkspaceAddMenu = useUIStore((s) => s.closeWorkspaceAddMenu);
+
+  useEffect(() => {
+    if (!isUnlocked) return;
+
+    const handler = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
+        event.preventDefault();
+        setSpotlightOpen((value) => !value);
+      }
+    };
+
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isUnlocked]);
+
+  return (
+    <div className={styles.dashRoot}>
+      {/* ⚠️  WorkspaceCanvas contains the 3D scene — it is React.memo-wrapped and
+           must stay at the top, always rendered, with NO conditional wrappers or
+           key changes that could cause a re-mount and destroy the WebGL context. */}
+      <WorkspaceCanvas enableSnapshot={hasCompanyAccess} snapshotScope={snapshotScope} />
+
+      {!isUnlocked && (
+        <WorkspaceLock
+          onUnlocked={() => {
+            const state = useAuthStore.getState();
+            navigate(
+              resolvePostAuthPath({ org: state.org, membership: state.membership }),
+              { replace: true },
+            );
+          }}
+        />
+      )}
+
+      {isUnlocked && (
+        <>
+          <WorkspaceAddMenu
+            open={workspaceAddMenuOpen}
+            onClose={closeWorkspaceAddMenu}
+            onSelect={(kind) => {
+              addTile(kind);
+              closeWorkspaceAddMenu();
+            }}
+          />
+          <WorkspaceSpotlight
+            open={spotlightOpen}
+            onClose={() => setSpotlightOpen(false)}
+          />
+        </>
+      )}
+    </div>
+  );
+}

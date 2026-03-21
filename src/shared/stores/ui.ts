@@ -1,0 +1,118 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { useCommandPalette } from './commandPalette';
+import { getDocument, getWindow, readStorage } from '../lib/browser';
+
+export type Theme = 'dark';
+export type ThemePack = 'neutral' | 'graphite' | 'sand' | 'obsidian' | 'enterprise';
+
+type ActionRequest<T = undefined> = {
+  nonce: number;
+  payload: T;
+};
+
+type CreateDealPayload = {
+  customerId?: string;
+  title?: string;
+};
+
+type CreateTaskPayload = {
+  customerId?: string;
+  title?: string;
+};
+
+interface UIStore {
+  theme: Theme;
+  themePack: ThemePack;
+  sidebarCollapsed: boolean;
+  focusMode: boolean;
+  workspaceAddMenuOpen: boolean;
+  createCustomerRequest: ActionRequest<undefined>;
+  createDealRequest: ActionRequest<CreateDealPayload | undefined>;
+  createTaskRequest: ActionRequest<CreateTaskPayload | undefined>;
+  assistantPromptRequest: ActionRequest<string | undefined>;
+  setTheme: (t: Theme) => void;
+  setThemePack: (pack: ThemePack) => void;
+  toggleSidebar: () => void;
+  toggleFocusMode: () => void;
+  openWorkspaceAddMenu: () => void;
+  closeWorkspaceAddMenu: () => void;
+  openCreateCustomer: () => void;
+  openCreateDeal: (payload?: CreateDealPayload) => void;
+  openCreateTask: (payload?: CreateTaskPayload) => void;
+  openAssistantPrompt: (prompt?: string) => void;
+  openCommandPalette: () => void;
+}
+
+function applyTheme(theme: Theme, pack: ThemePack = 'neutral') {
+  const root = getDocument()?.documentElement;
+  if (!root) return;
+  root.setAttribute('data-theme', theme);
+  root.setAttribute('data-theme-mode', theme);
+  root.setAttribute('data-theme-pack', pack);
+  root.style.colorScheme = theme;
+}
+
+export const useUIStore = create<UIStore>()(
+  persist(
+    (set, get) => ({
+      theme: 'dark',
+      themePack: 'neutral',
+      sidebarCollapsed: false,
+      focusMode: false,
+      workspaceAddMenuOpen: false,
+      createCustomerRequest: { nonce: 0, payload: undefined },
+      createDealRequest: { nonce: 0, payload: undefined },
+      createTaskRequest: { nonce: 0, payload: undefined },
+      assistantPromptRequest: { nonce: 0, payload: undefined },
+      setTheme: () => {
+        set({ theme: 'dark' });
+        applyTheme('dark', get().themePack);
+      },
+      setThemePack: (themePack) => {
+        set({ themePack });
+        applyTheme(get().theme, themePack);
+      },
+      toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+      toggleFocusMode: () => set((s) => ({ focusMode: !s.focusMode })),
+      openWorkspaceAddMenu: () => set({ workspaceAddMenuOpen: true }),
+      closeWorkspaceAddMenu: () => set({ workspaceAddMenuOpen: false }),
+      openCreateCustomer: () => set((s) => ({
+        createCustomerRequest: { nonce: s.createCustomerRequest.nonce + 1, payload: undefined },
+      })),
+      openCreateDeal: (payload) => set((s) => ({
+        createDealRequest: { nonce: s.createDealRequest.nonce + 1, payload },
+      })),
+      openCreateTask: (payload) => set((s) => ({
+        createTaskRequest: { nonce: s.createTaskRequest.nonce + 1, payload },
+      })),
+      openAssistantPrompt: (prompt) => set((s) => ({
+        assistantPromptRequest: { nonce: s.assistantPromptRequest.nonce + 1, payload: prompt },
+      })),
+      openCommandPalette: () => useCommandPalette.getState().open(),
+    }),
+    {
+      name: 'kort-ui',
+      partialize: (state) => ({
+        theme: state.theme,
+        themePack: state.themePack,
+        sidebarCollapsed: state.sidebarCollapsed,
+        focusMode: state.focusMode,
+      }),
+    },
+  ),
+);
+
+const win = getWindow();
+if (win) {
+  const raw = readStorage('kort-ui');
+  let parsed: Record<string, unknown> = {};
+  try {
+    parsed = raw ? JSON.parse(raw).state ?? {} : {};
+  } catch {
+    parsed = {};
+  }
+  const theme: Theme = 'dark';
+  const themePack: ThemePack = (parsed.themePack as ThemePack) ?? 'neutral';
+  applyTheme(theme, themePack);
+}

@@ -1,0 +1,35 @@
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AuthModal } from '../../../features/auth/AuthModal';
+import { AuthRouteLayout } from '../../../features/auth/AuthRouteLayout';
+import { resolvePostAuthPath } from '../../../features/auth/navigation';
+import { useAuthStore } from '../../../shared/stores/auth';
+
+export default function LoginPage() {
+  const navigate = useNavigate();
+  const unlock = useAuthStore((state) => state.unlock);
+  const user = useAuthStore((state) => state.user);
+  const org = useAuthStore((state) => state.org);
+  const membership = useAuthStore((state) => state.membership);
+  const isUnlocked = useAuthStore((state) => state.isUnlocked);
+
+  useEffect(() => {
+    if (!user || !isUnlocked) return;
+    navigate(resolvePostAuthPath({ org, membership }), { replace: true });
+  }, [isUnlocked, membership, navigate, org, user]);
+
+  return (
+    <AuthRouteLayout>
+      <AuthModal
+        open
+        initialStep="login"
+        onClose={() => navigate('/', { replace: true })}
+        onAuthSuccess={() => {
+          unlock();
+          const state = useAuthStore.getState();
+          navigate(resolvePostAuthPath({ org: state.org, membership: state.membership }), { replace: true });
+        }}
+      />
+    </AuthRouteLayout>
+  );
+}
