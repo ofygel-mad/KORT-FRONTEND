@@ -13,22 +13,25 @@ interface Props {
 export function ProductionWorkspaceShell({
   title,
   onBack,
+  tone = 'live',
   children,
 }: Props) {
   return (
-    <div className={s.root}>
-      <header className={s.header}>
-        <button className={s.backBtn} onClick={onBack}>
-          <ArrowLeft size={15} />
-          <span>К производствам</span>
-        </button>
+    <div className={s.root} data-tone={tone}>
+      {tone !== 'template' && (
+        <header className={s.header}>
+          <button className={s.backBtn} onClick={onBack}>
+            <ArrowLeft size={15} />
+            <span>К производствам</span>
+          </button>
 
-        <div className={s.meta}>
-          <div className={s.title}>{title}</div>
-        </div>
-      </header>
+          <div className={s.meta}>
+            <div className={s.title}>{title}</div>
+          </div>
+        </header>
+      )}
 
-      <div className={s.body}>
+      <div className={s.body} data-tone={tone}>
         {children}
       </div>
     </div>

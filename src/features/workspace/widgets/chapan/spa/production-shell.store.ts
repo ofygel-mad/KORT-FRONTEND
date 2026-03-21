@@ -32,9 +32,9 @@ interface ProductionShellState {
 const DEFAULT_RECORD: ProductionShellRecord = {
   activeWorkspace: 'hub',
   templateSection: 'overview',
-  templateName: 'Новое производство',
-  templateDescriptor: 'Шаблонный production-space для нового клиента без переписывания ядра.',
-  templateOrderPrefix: 'NP',
+  templateName: '',
+  templateDescriptor: '',
+  templateOrderPrefix: '',
 };
 
 function isWorkspaceId(value: unknown): value is ProductionWorkspaceId {
@@ -46,19 +46,15 @@ function isTemplateSection(value: unknown): value is ProductionTemplateSection {
 }
 
 function sanitizeName(value: unknown) {
-  return typeof value === 'string' && value.trim() ? value.trim() : DEFAULT_RECORD.templateName;
+  return typeof value === 'string' ? value : DEFAULT_RECORD.templateName;
 }
 
 function sanitizeDescriptor(value: unknown) {
-  return typeof value === 'string' && value.trim()
-    ? value.trim()
-    : DEFAULT_RECORD.templateDescriptor;
+  return typeof value === 'string' ? value : DEFAULT_RECORD.templateDescriptor;
 }
 
 function sanitizePrefix(value: unknown) {
-  return typeof value === 'string' && value.trim()
-    ? value.trim().toUpperCase().slice(0, 4)
-    : DEFAULT_RECORD.templateOrderPrefix;
+  return typeof value === 'string' ? value : DEFAULT_RECORD.templateOrderPrefix;
 }
 
 function ensureRecord(record?: Partial<ProductionShellRecord>): ProductionShellRecord {

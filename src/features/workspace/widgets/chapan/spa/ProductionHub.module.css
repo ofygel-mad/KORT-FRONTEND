@@ -27,7 +27,7 @@
   to { transform: rotate(360deg); }
 }
 
-/* ── Card grid ── */
+/* ── Card grid ─────────────────────────────────────────────── */
 .cardGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -96,7 +96,7 @@
   line-height: 1.15;
 }
 
-/* ── Metric rows ── */
+/* ── Metric rows ───────────────────────────────────────────── */
 .metricList {
   display: grid;
   gap: 8px;
@@ -125,7 +125,7 @@
   font-weight: 700;
 }
 
-/* ── Buttons ── */
+/* ── Buttons ──────────────────────────────────────────────── */
 .primaryBtn,
 .secondaryBtn {
   display: inline-flex;
@@ -190,7 +190,7 @@
   box-shadow: var(--brand-focus-ring);
 }
 
-/* ── Responsive ── */
+/* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 980px) {
   .root { padding: 14px; }
   .cardGrid { grid-template-columns: 1fr; }

@@ -602,6 +602,21 @@ export function installMockAdapter(client: AxiosInstance) {
       return withResponse(config, clone(company));
     }
 
+    if (url === '/workspaces' && method === 'post') {
+      if (!session) return withResponse(config, null, 401);
+
+      const workspace = {
+        id: `ws-${Date.now()}`,
+        name: String(body.name ?? '').trim() || 'РќРѕРІРѕРµ РїСЂРѕРёР·РІРѕРґСЃС‚РІРѕ',
+        description: String(body.description ?? '').trim(),
+        prefix: String(body.prefix ?? '').trim().toUpperCase(),
+        status: 'created',
+        created_at: new Date().toISOString(),
+      };
+
+      return withResponse(config, workspace);
+    }
+
     if (url === '/users/team' && method === 'get') {
       const results = buildTeam(getCompanyIdForSession(session));
       return withResponse(config, { count: results.length, results });

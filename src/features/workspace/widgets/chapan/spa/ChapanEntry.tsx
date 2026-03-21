@@ -13,6 +13,7 @@ export function ChapanEntry({ tileId }: { tileId: string }) {
   const role = useResolvedChapanRole();
   const { activeWorkspace, goHome, templateName } = useTileProductionShell(tileId);
   const profileName = useChapanStore((state) => state.profile.displayName);
+  const templateTitle = templateName.trim() || 'Новое производство';
 
   if (activeWorkspace === 'hub') {
     return <ProductionHub tileId={tileId} />;
@@ -21,10 +22,11 @@ export function ChapanEntry({ tileId }: { tileId: string }) {
   if (activeWorkspace === 'template') {
     return (
       <ProductionWorkspaceShell
-        title={templateName}
+        title={templateTitle}
         onBack={goHome}
+        tone="template"
       >
-        <ProductionTemplateSPA tileId={tileId} />
+        <ProductionTemplateSPA tileId={tileId} onBack={goHome} />
       </ProductionWorkspaceShell>
     );
   }

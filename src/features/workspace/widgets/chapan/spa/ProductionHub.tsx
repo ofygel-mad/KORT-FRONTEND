@@ -8,6 +8,7 @@ export function ProductionHub({ tileId }: { tileId: string }) {
   const { loading, load, orders, requests, profile } = useChapanStore();
   const { openWorkspace, templateName } = useTileProductionShell(tileId);
   const hasRequestedInitialLoad = useRef(false);
+  const templateTitle = templateName.trim() || 'Новое производство';
 
   useEffect(() => {
     if (!hasRequestedInitialLoad.current && !loading) {
@@ -71,7 +72,7 @@ export function ProductionHub({ tileId }: { tileId: string }) {
         <article className={s.workspaceCard} data-tone="template">
           <div className={s.cardHead}>
             <span className={s.cardBadge}>Шаблон</span>
-            <h2 className={s.cardTitle}>{templateName}</h2>
+            <h2 className={s.cardTitle}>{templateTitle}</h2>
           </div>
 
           <div className={s.metricList}>

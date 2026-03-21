@@ -612,6 +612,12 @@ header, nav, main, aside, section, article,
   color:var(--input-text); outline:none; width:100%;
   transition:border-color var(--transition-fast),box-shadow var(--transition-fast);
 }
+.kort-textarea::placeholder {
+  color: color-mix(in srgb, var(--input-text) 50%, var(--input-placeholder));
+  opacity: 1;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
 .kort-textarea:focus { border-color:var(--input-border-focus); box-shadow:var(--shadow-focus); }
 
 .kort-select {
