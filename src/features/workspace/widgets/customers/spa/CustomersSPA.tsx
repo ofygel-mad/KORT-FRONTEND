@@ -1,5 +1,5 @@
 /**
- * Customers SPA вЂ” full working environment inside the tile modal.
+ * Customers SPA — full working environment inside the tile modal.
  * Lives at: src/features/workspace/widgets/customers/spa/CustomersSPA.tsx
  */
 import { useState } from 'react';
@@ -10,10 +10,10 @@ import s from './CustomersSPA.module.css';
 type CustomerTone = 'success' | 'info' | 'muted';
 
 const STATUS_META: Record<string, { label: string; tone: CustomerTone }> = {
-  active: { label: 'РђРєС‚РёРІРЅС‹Р№', tone: 'success' },
-  new: { label: 'РќРѕРІС‹Р№', tone: 'info' },
-  inactive: { label: 'РќРµР°РєС‚РёРІРЅС‹Р№', tone: 'muted' },
-  archived: { label: 'РђСЂС…РёРІ', tone: 'muted' },
+  active: { label: 'Активный', tone: 'success' },
+  new: { label: 'Новый', tone: 'info' },
+  inactive: { label: 'Неактивный', tone: 'muted' },
+  archived: { label: 'Архив', tone: 'muted' },
 };
 
 interface Props { snapshot?: WorkspaceSnapshot; }
@@ -33,43 +33,43 @@ export function CustomersSPA({ snapshot }: Props) {
           <Search size={14} className={s.searchIcon} />
           <input
             className={s.search}
-            placeholder="РџРѕРёСЃРє РєР»РёРµРЅС‚РѕРІ..."
+            placeholder="Поиск клиентов..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
         <button className={s.addBtn}>
           <Plus size={14} />
-          Р”РѕР±Р°РІРёС‚СЊ
+          Добавить
         </button>
       </div>
 
       <div className={s.statsBar}>
         <div className={s.stat}>
           <span className={s.statNum}>{snapshot?.customersCount ?? 0}</span>
-          <span className={s.statLabel}>Р’СЃРµРіРѕ РєР»РёРµРЅС‚РѕРІ</span>
+          <span className={s.statLabel}>Всего клиентов</span>
         </div>
         <div className={s.stat}>
           <span className={s.statNum}>{rows.filter((r) => r.status === 'active').length}</span>
-          <span className={s.statLabel}>РђРєС‚РёРІРЅС‹С…</span>
+          <span className={s.statLabel}>Активных</span>
         </div>
         <div className={s.stat}>
           <span className={s.statNum}>{rows.filter((r) => r.status === 'new').length}</span>
-          <span className={s.statLabel}>РќРѕРІС‹С…</span>
+          <span className={s.statLabel}>Новых</span>
         </div>
       </div>
 
       <div className={s.tableWrap}>
         <div className={s.tableHead}>
-          <span><User size={11} /> РљР»РёРµРЅС‚</span>
-          <span><Building2 size={11} /> РљРѕРјРїР°РЅРёСЏ</span>
-          <span><Tag size={11} /> РЎС‚Р°С‚СѓСЃ</span>
+          <span><User size={11} /> Клиент</span>
+          <span><Building2 size={11} /> Компания</span>
+          <span><Tag size={11} /> Статус</span>
           <span />
         </div>
         <div className={s.tableBody}>
           {filtered.length === 0 ? (
             <div className={s.empty}>
-              {query ? 'РќРёС‡РµРіРѕ РЅРµ РЅР°Р№РґРµРЅРѕ' : 'РљР»РёРµРЅС‚С‹ РµС‰С‘ РЅРµ РґРѕР±Р°РІР»РµРЅС‹'}
+              {query ? 'Ничего не найдено' : 'Клиенты ещё не добавлены'}
             </div>
           ) : filtered.map((row) => {
             const meta = STATUS_META[row.status] ?? { label: row.status, tone: 'muted' as CustomerTone };
@@ -79,7 +79,7 @@ export function CustomersSPA({ snapshot }: Props) {
                   <div className={s.avatar}>{row.fullName[0]}</div>
                   <span>{row.fullName}</span>
                 </div>
-                <span className={s.rowCompany}>{row.companyName || 'вЂ”'}</span>
+                <span className={s.rowCompany}>{row.companyName || '—'}</span>
                 <span className={s.badge} data-tone={meta.tone}>
                   {meta.label}
                 </span>

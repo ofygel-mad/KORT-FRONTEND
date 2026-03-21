@@ -1,6 +1,6 @@
 /**
  * features/summary-spa/components/charts/RevenueTrend.tsx
- * SVG sparkline bar chart вЂ” won revenue over time.
+ * SVG sparkline bar chart — won revenue over time.
  */
 import { useSummaryStore } from '../../model/summary.store';
 import s from '../widgets/Widgets.module.css';
@@ -8,8 +8,8 @@ import s from '../widgets/Widgets.module.css';
 const PERIOD_DAYS = { '7d': 7, '14d': 14, '30d': 30 };
 
 function fmtMoney(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'Рњ';
-  if (n >= 1_000) return Math.round(n / 1_000) + 'Рє';
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'М';
+  if (n >= 1_000) return Math.round(n / 1_000) + 'к';
   return n === 0 ? '0' : String(n);
 }
 
@@ -26,8 +26,8 @@ export function RevenueTrend() {
   if (slice.length === 0) {
     return (
       <div className={s.chartCard}>
-        <div className={s.chartTitle}>Р’С‹СЂСѓС‡РєР° Р·Р° РїРµСЂРёРѕРґ</div>
-        <div className={s.emptyFeed}>РСЃС‚РѕСЂРёСЏ РґР»СЏ РіСЂР°С„РёРєР° РµС‰С‘ РЅРµ РЅР°РєРѕРїР»РµРЅР°.</div>
+        <div className={s.chartTitle}>Выручка за период</div>
+        <div className={s.emptyFeed}>История для графика ещё не накоплена.</div>
       </div>
     );
   }
@@ -44,8 +44,8 @@ export function RevenueTrend() {
     <div className={s.chartCard}>
       <div className={s.chartHeader}>
         <div>
-          <div className={s.chartTitle}>Р’С‹СЂСѓС‡РєР° Р·Р° РїРµСЂРёРѕРґ</div>
-          <div className={s.chartSubtitle}>Р’СЃРµРіРѕ: {fmtMoney(total)} в‚ё В· РЎСЂ/РґРµРЅСЊ: {fmtMoney(avg)} в‚ё</div>
+          <div className={s.chartTitle}>Выручка за период</div>
+          <div className={s.chartSubtitle}>Всего: {fmtMoney(total)} ₸ · Ср/день: {fmtMoney(avg)} ₸</div>
         </div>
       </div>
 

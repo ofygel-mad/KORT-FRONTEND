@@ -75,6 +75,7 @@ export class WorkspaceSceneTerrainController {
   private readonly terrainLocalPointerTarget = new THREE.Vector3(9999, 9999, 0);
   private peakBeaconsEnabled = true;
   private amplitudePulse = 1.0;
+  private pointerInfluenceStrength = 0;
   private readonly influencePool: TerrainInfluence[] = [];
   private static readonly EMPTY_INFLUENCES: TerrainInfluence[] = [];
   private terrainMode: WorkspaceSceneRuntimeState['terrainMode'];
@@ -92,7 +93,6 @@ export class WorkspaceSceneTerrainController {
   private motionTo = 1;
   private collapsePulse = 0;
   private geometryDirty = false;
-  private pointerInvalidStreak = 0;
 
   constructor(options: WorkspaceSceneTerrainControllerOptions) {
     this.camera = options.camera;
@@ -204,7 +204,7 @@ export class WorkspaceSceneTerrainController {
     if (this.terrainMode === 'full' && this.getPointerInfluenceActive() && !querySuppressed) {
       this.updatePointerInfluence();
     } else {
-      this.terrainLocalPointer.set(9999, 9999, 0);
+      this.clearPointerInfluence();
     }
 
     this.terrainLocalPosition.copy(this.camera.position);
@@ -565,17 +565,9 @@ export class WorkspaceSceneTerrainController {
 
   private updatePointerInfluence() {
     if (!this.getPointerInfluenceActive()) {
-      this.terrainLocalPointer.set(9999, 9999, 0);
-      this.terrainLocalPointerTarget.set(9999, 9999, 0);
-      this.pointerInvalidStreak = 0;
+      this.clearPointerInfluence();
       return;
     }
-
-    if (this.getFrameCount() % 3 !== 0) {
-      return;
-    }
-
-    const hadPointerInfluence = this.hasPointerInfluence();
     this.raycaster.setFromCamera(this.pointer, this.camera);
     this.invisiblePlane.getWorldQuaternion(this.planeWorldQuaternion);
     this.planeWorldNormal
@@ -584,14 +576,23 @@ export class WorkspaceSceneTerrainController {
       .normalize();
 
     const incidence = Math.abs(this.raycaster.ray.direction.dot(this.planeWorldNormal));
-    if (incidence < (hadPointerInfluence ? 0.18 : 0.24)) {
-      this.invalidatePointerInfluence(hadPointerInfluence);
+    if (incidence < 0.31) {
+      this.clearPointerInfluence();
       return;
     }
 
     const hits = this.raycaster.intersectObject(this.invisiblePlane, false);
     if (!hits.length) {
-      this.invalidatePointerInfluence(hadPointerInfluence);
+      this.clearPointerInfluence();
+      return;
+    }
+
+    const hitDistance = hits[0].distance;
+    const distanceFade = 1 - THREE.MathUtils.smoothstep(hitDistance, 80, 104);
+    const incidenceFade = THREE.MathUtils.smoothstep(incidence, 0.31, 0.44);
+    const nextPointerStrength = distanceFade * incidenceFade;
+    if (nextPointerStrength <= 0.025) {
+      this.clearPointerInfluence();
       return;
     }
 
@@ -607,15 +608,14 @@ export class WorkspaceSceneTerrainController {
     );
 
     if (
-      radialDistance > TERRAIN_RADIUS * (hadPointerInfluence ? 0.89 : 0.86)
-      || pointerDistanceFromCamera > TERRAIN_RADIUS * (hadPointerInfluence ? 0.78 : 0.74)
-      || Math.abs(this.terrainLocalPointerTarget.z) > (hadPointerInfluence ? 22 : 18)
+      radialDistance > TERRAIN_RADIUS * 0.84
+      || pointerDistanceFromCamera > TERRAIN_RADIUS * 0.68
+      || Math.abs(this.terrainLocalPointerTarget.z) > 14
     ) {
-      this.invalidatePointerInfluence(hadPointerInfluence);
+      this.clearPointerInfluence();
       return;
     }
 
-    this.pointerInvalidStreak = 0;
     if (!this.hasPointerInfluence()) {
       this.terrainLocalPointer.copy(this.terrainLocalPointerTarget);
     } else {
@@ -623,17 +623,13 @@ export class WorkspaceSceneTerrainController {
     }
 
     this.terrainLocalPointer.z = 0;
+    this.pointerInfluenceStrength = nextPointerStrength;
   }
 
-  private invalidatePointerInfluence(hadPointerInfluence: boolean) {
-    if (hadPointerInfluence && this.pointerInvalidStreak < 2) {
-      this.pointerInvalidStreak += 1;
-      return;
-    }
-
+  private clearPointerInfluence() {
     this.terrainLocalPointer.set(9999, 9999, 0);
     this.terrainLocalPointerTarget.set(9999, 9999, 0);
-    this.pointerInvalidStreak = 0;
+    this.pointerInfluenceStrength = 0;
   }
 
   private getPooledInfluence(index: number): TerrainInfluence {
@@ -658,12 +654,12 @@ export class WorkspaceSceneTerrainController {
 
     let count = 0;
 
-    if (this.hasPointerInfluence()) {
+    if (this.hasPointerInfluence() && this.pointerInfluenceStrength > 0.025) {
       const inf = this.getPooledInfluence(count);
       inf.localPoint = this.terrainLocalPointer;
-      inf.radius = flightMode ? 30 : 38;
-      inf.depth = flightMode ? 6.2 : 9.4;
-      inf.ripple = flightMode ? 0.9 : 1.35;
+      inf.radius = THREE.MathUtils.lerp(flightMode ? 18 : 20, flightMode ? 30 : 38, this.pointerInfluenceStrength);
+      inf.depth = (flightMode ? 6.2 : 9.4) * this.pointerInfluenceStrength;
+      inf.ripple = (flightMode ? 0.9 : 1.35) * this.pointerInfluenceStrength;
       inf.wobble = flightMode ? 8.2 : 8.8;
       count += 1;
     }

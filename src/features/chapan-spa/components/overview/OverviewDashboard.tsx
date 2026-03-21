@@ -12,18 +12,18 @@ interface Props {
 type StageTone = 'warning' | 'info' | 'accent' | 'success';
 
 const PIPE_STAGES = [
-  { status: 'cutting', label: 'Р Р°СЃРєСЂРѕР№', tone: 'warning' as StageTone },
-  { status: 'sewing', label: 'РџРѕС€РёРІ', tone: 'info' as StageTone },
-  { status: 'finishing', label: 'РћС‚РґРµР»РєР°', tone: 'accent' as StageTone },
-  { status: 'quality_check', label: 'РџСЂРѕРІРµСЂРєР°', tone: 'success' as StageTone },
+  { status: 'cutting', label: 'Раскрой', tone: 'warning' as StageTone },
+  { status: 'sewing', label: 'Пошив', tone: 'info' as StageTone },
+  { status: 'finishing', label: 'Отделка', tone: 'accent' as StageTone },
+  { status: 'quality_check', label: 'Проверка', tone: 'success' as StageTone },
 ] as const;
 
 function dueDateLabel(dueDate: string): { label: string; urgency: 'overdue' | 'today' | 'tomorrow' | null } {
   const days = Math.ceil((new Date(dueDate).getTime() - Date.now()) / 86_400_000);
-  if (days < 0) return { label: `${Math.abs(days)}Рґ. РїСЂРѕСЃСЂРѕС‡РµРЅ`, urgency: 'overdue' };
-  if (days === 0) return { label: 'РЎСЂРѕРє СЃРµРіРѕРґРЅСЏ', urgency: 'today' };
-  if (days === 1) return { label: 'РЎСЂРѕРє Р·Р°РІС‚СЂР°', urgency: 'tomorrow' };
-  return { label: `${days}Рґ.`, urgency: null };
+  if (days < 0) return { label: `${Math.abs(days)}д. просрочен`, urgency: 'overdue' };
+  if (days === 0) return { label: 'Срок сегодня', urgency: 'today' };
+  if (days === 1) return { label: 'Срок завтра', urgency: 'tomorrow' };
+  return { label: `${days}д.`, urgency: null };
 }
 
 export function OverviewDashboard({ tileId }: Props) {
@@ -90,13 +90,13 @@ export function OverviewDashboard({ tileId }: Props) {
       <div className={s.emptyState}>
         <EmptyState
           icon={<PackagePlus size={26} />}
-          title="РќРµС‚ Р°РєС‚РёРІРЅС‹С… Р·Р°РєР°Р·РѕРІ"
-          description="РЎРѕР·РґР°Р№С‚Рµ РїРµСЂРІС‹Р№ Р·Р°РєР°Р·, С‡С‚РѕР±С‹ РѕС‚РєСЂС‹С‚СЊ РѕС‡РµСЂРµРґСЊ С†РµС…Р°, СЃС‚Р°С‚СѓСЃС‹ СЌС‚Р°РїРѕРІ Рё РѕРїР»Р°С‚Сѓ РІ РѕРґРЅРѕРј РїРѕС‚РѕРєРµ."
-          action={{ label: 'РЎРѕР·РґР°С‚СЊ Р·Р°РєР°Р·', onClick: openCreateModal }}
+          title="Нет активных заказов"
+          description="Создайте первый заказ, чтобы открыть очередь цеха, статусы этапов и оплату в одном потоке."
+          action={{ label: 'Создать заказ', onClick: openCreateModal }}
           steps={[
-            'Р”РѕР±Р°РІСЊС‚Рµ РєР»РёРµРЅС‚Р° Рё РёР·РґРµР»РёРµ РІ РЅРѕРІС‹Р№ Р·Р°РєР°Р·.',
-            'РЈРєР°Р¶РёС‚Рµ СЃСЂРѕРє, РїСЂРёРѕСЂРёС‚РµС‚ Рё РїСЂРµРґРѕРїР»Р°С‚Сѓ.',
-            'РџРµСЂРµРґР°Р№С‚Рµ Р·Р°РєР°Р· РІ РїСЂРѕРёР·РІРѕРґСЃС‚РІРѕ Рё РѕС‚СЃР»РµР¶РёРІР°Р№С‚Рµ СЌС‚Р°РїС‹.',
+            'Добавьте клиента и изделие в новый заказ.',
+            'Укажите срок, приоритет и предоплату.',
+            'Передайте заказ в производство и отслеживайте этапы.',
           ]}
         />
       </div>
@@ -108,32 +108,32 @@ export function OverviewDashboard({ tileId }: Props) {
       <div className={s.statsStrip}>
         <div className={s.statChip}>
           <span className={s.statVal}>{data.activeCount}</span>
-          <span className={s.statLbl}>Р°РєС‚РёРІРЅС‹С…</span>
+          <span className={s.statLbl}>активных</span>
         </div>
         <div className={s.sep} />
         <div className={s.statChip}>
           <span className={s.statVal}>{data.inProdCount}</span>
-          <span className={s.statLbl}>РІ РїРѕС€РёРІРµ</span>
+          <span className={s.statLbl}>в пошиве</span>
         </div>
         <div className={s.sep} />
         <div className={`${s.statChip} ${data.readyCount > 0 ? s.green : ''}`}>
           <span className={s.statVal}>{data.readyCount}</span>
-          <span className={s.statLbl}>РіРѕС‚РѕРІРѕ</span>
+          <span className={s.statLbl}>готово</span>
         </div>
         <div className={s.sep} />
         <div className={`${s.statChip} ${data.overdueCount > 0 ? s.red : ''}`}>
           <span className={s.statVal}>{data.overdueCount}</span>
-          <span className={s.statLbl}>РїСЂРѕСЃСЂРѕС‡РµРЅРѕ</span>
+          <span className={s.statLbl}>просрочено</span>
         </div>
         <div className={s.stretchSep} />
         <div className={s.finItem}>
-          <span className={s.finLbl}>Р–РґС‘С‚ РѕРїР»Р°С‚С‹</span>
-          <span className={s.finVal}>{data.pendingPayment.toLocaleString('ru-RU')} в‚ё</span>
+          <span className={s.finLbl}>Ждёт оплаты</span>
+          <span className={s.finVal}>{data.pendingPayment.toLocaleString('ru-RU')} ₸</span>
         </div>
         <div className={s.sep} />
         <div className={s.finItem}>
-          <span className={s.finLbl}>Р’С‹СЂСѓС‡РєР°</span>
-          <span className={s.finVal}>{data.totalRevenue.toLocaleString('ru-RU')} в‚ё</span>
+          <span className={s.finLbl}>Выручка</span>
+          <span className={s.finVal}>{data.totalRevenue.toLocaleString('ru-RU')} ₸</span>
         </div>
       </div>
 
@@ -141,11 +141,11 @@ export function OverviewDashboard({ tileId }: Props) {
         <div className={s.blockedAlert}>
           <AlertTriangle size={13} className={s.blockedAlertIcon} />
           <span>
-            <strong>{data.blockedTasks.length} Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅРѕ</strong>
-            {' '}РІ РїСЂРѕРёР·РІРѕРґСЃС‚РІРµ, С‚СЂРµР±СѓРµС‚СЃСЏ РІРјРµС€Р°С‚РµР»СЊСЃС‚РІРѕ
+            <strong>{data.blockedTasks.length} заблокировано</strong>
+            {' '}в производстве, требуется вмешательство
           </span>
           <button className={s.blockedAlertLink} onClick={() => setSection('production')}>
-            РћС‚РєСЂС‹С‚СЊ
+            Открыть
           </button>
         </div>
       )}
@@ -154,14 +154,14 @@ export function OverviewDashboard({ tileId }: Props) {
         <div className={s.attentionZone}>
           <div className={s.zoneHeader}>
             <AlertCircle size={13} />
-            <span>РўСЂРµР±СѓРµС‚ РґРµР№СЃС‚РІРёСЏ</span>
+            <span>Требует действия</span>
           </div>
 
           {data.dueTodayOrders.length > 0 && (
             <div className={s.group}>
               <div className={s.groupHead}>
                 <span className={`${s.groupLabel} ${s.groupLabelDanger}`}>
-                  РЎСЂРѕРє РёСЃС‚РµРєР°РµС‚ СЃРµРіРѕРґРЅСЏ
+                  Срок истекает сегодня
                 </span>
                 <span className={s.groupCount}>{data.dueTodayOrders.length}</span>
               </div>
@@ -169,7 +169,7 @@ export function OverviewDashboard({ tileId }: Props) {
                 <button key={o.id} className={`${s.overdueRow} ${s.todayRow}`} onClick={() => openDrawer(o.id)}>
                   <span className={s.rowNum}>{o.orderNumber}</span>
                   <span className={s.rowName}>{o.clientName}</span>
-                  <span className={s.todayDays}>СЃРµРіРѕРґРЅСЏ</span>
+                  <span className={s.todayDays}>сегодня</span>
                 </button>
               ))}
             </div>
@@ -178,7 +178,7 @@ export function OverviewDashboard({ tileId }: Props) {
           {data.newOrders.length > 0 && (
             <div className={s.group}>
               <div className={s.groupHead}>
-                <span className={s.groupLabel}>РћР¶РёРґР°СЋС‚ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ</span>
+                <span className={s.groupLabel}>Ожидают подтверждения</span>
                 <span className={s.groupCount}>{data.newOrders.length}</span>
               </div>
               {data.newOrders.slice(0, 3).map((o) => {
@@ -194,17 +194,17 @@ export function OverviewDashboard({ tileId }: Props) {
                           {due.label}
                         </span>
                       )}
-                      <span className={s.rowAmt}>{o.totalAmount.toLocaleString('ru-RU')} в‚ё</span>
+                      <span className={s.rowAmt}>{o.totalAmount.toLocaleString('ru-RU')} ₸</span>
                     </button>
                     <button className={s.qBtn} onClick={() => confirmOrder(o.id)}>
-                      РџРѕРґС‚РІРµСЂРґРёС‚СЊ
+                      Подтвердить
                     </button>
                   </div>
                 );
               })}
               {data.newOrders.length > 3 && (
                 <button className={s.moreBtn} onClick={() => setSection('orders')}>
-                  Р•С‰С‘ {data.newOrders.length - 3}
+                  Ещё {data.newOrders.length - 3}
                 </button>
               )}
             </div>
@@ -214,7 +214,7 @@ export function OverviewDashboard({ tileId }: Props) {
             <div className={s.group}>
               <div className={s.groupHead}>
                 <span className={`${s.groupLabel} ${s.groupLabelSuccess}`}>
-                  Р“РѕС‚РѕРІС‹ Рє РІС‹РґР°С‡Рµ
+                  Готовы к выдаче
                 </span>
                 <span className={s.groupCount}>{data.awaitingTransfer.length}</span>
               </div>
@@ -226,13 +226,13 @@ export function OverviewDashboard({ tileId }: Props) {
                     <span className={s.rowPhone}>{o.clientPhone}</span>
                   </button>
                   <button className={`${s.qBtn} ${s.qBtnGreen}`} onClick={() => openDrawer(o.id)}>
-                    РџРµСЂРµРґР°С‚СЊ
+                    Передать
                   </button>
                 </div>
               ))}
               {data.awaitingTransfer.length > 3 && (
                 <button className={s.moreBtn} onClick={() => setSection('orders')}>
-                  Р•С‰С‘ {data.awaitingTransfer.length - 3}
+                  Ещё {data.awaitingTransfer.length - 3}
                 </button>
               )}
             </div>
@@ -242,7 +242,7 @@ export function OverviewDashboard({ tileId }: Props) {
             <div className={s.group}>
               <div className={s.groupHead}>
                 <span className={`${s.groupLabel} ${s.groupLabelDanger}`}>
-                  РџСЂРѕСЃСЂРѕС‡РµРЅРѕ
+                  Просрочено
                 </span>
                 <span className={s.groupCount}>{data.overdueOrders.length}</span>
               </div>
@@ -254,7 +254,7 @@ export function OverviewDashboard({ tileId }: Props) {
                   <button key={o.id} className={s.overdueRow} onClick={() => openDrawer(o.id)}>
                     <span className={s.rowNum}>{o.orderNumber}</span>
                     <span className={s.rowName}>{o.clientName}</span>
-                    <span className={s.overdueDays}>{days}Рґ. РїСЂРѕСЃСЂРѕС‡РµРЅ</span>
+                    <span className={s.overdueDays}>{days}д. просрочен</span>
                   </button>
                 );
               })}
@@ -265,15 +265,15 @@ export function OverviewDashboard({ tileId }: Props) {
 
       <div className={s.pipelineSection}>
         <div className={s.pipelineHead}>
-          <span className={s.pipelineTitle}>РџСЂРѕРёР·РІРѕРґСЃС‚РІРѕ</span>
+          <span className={s.pipelineTitle}>Производство</span>
           {data.blockedTasks.length > 0 && (
             <span className={s.pipelineBlocked}>
               <AlertTriangle size={10} />
-              {data.blockedTasks.length} Р±Р»РѕРє
+              {data.blockedTasks.length} блок
             </span>
           )}
           <button className={s.pipelineLink} onClick={() => setSection('production')}>
-            РћС‚РєСЂС‹С‚СЊ
+            Открыть
           </button>
         </div>
         <div className={s.pipeline}>
@@ -295,7 +295,7 @@ export function OverviewDashboard({ tileId }: Props) {
       {data.unpaidOrders.length > 0 && (
         <div className={s.unpaidSection}>
           <div className={s.groupHead}>
-            <span className={s.groupLabel}>РќРµ РѕРїР»Р°С‡РµРЅРѕ</span>
+            <span className={s.groupLabel}>Не оплачено</span>
             <span className={s.groupCount}>{data.unpaidOrders.length}</span>
           </div>
           {data.unpaidOrders.slice(0, 5).map((o) => (
@@ -303,13 +303,13 @@ export function OverviewDashboard({ tileId }: Props) {
               <span className={s.rowNum}>{o.orderNumber}</span>
               <span className={s.rowName}>{o.clientName}</span>
               <span className={s.unpaidDebt}>
-                {(o.totalAmount - o.paidAmount).toLocaleString('ru-RU')} в‚ё
+                {(o.totalAmount - o.paidAmount).toLocaleString('ru-RU')} ₸
               </span>
             </button>
           ))}
           {data.unpaidOrders.length > 5 && (
             <button className={s.moreBtn} onClick={() => setSection('orders')}>
-              Р•С‰С‘ {data.unpaidOrders.length - 5}
+              Ещё {data.unpaidOrders.length - 5}
             </button>
           )}
         </div>

@@ -1,33 +1,36 @@
+/* ═══════════════════════════════════════════════════════
+   WORKZONE REQUEST PAGE
+   Полностью на CSS-переменных дизайн-системы KORT.
+   Никаких хардкодных white/hex цветов в компонентах.
+   ═══════════════════════════════════════════════════════ */
+
 .page {
-  --intake-ink: var(--text-primary);
-  --intake-soft: var(--text-secondary);
-  --intake-muted: var(--text-tertiary);
-  --intake-accent: var(--fill-accent);
+  --intake-ink:           var(--text-primary);
+  --intake-soft:          var(--text-secondary);
+  --intake-muted:         var(--text-tertiary);
+  --intake-accent:        var(--fill-accent);
   --intake-accent-strong: var(--text-accent);
-  --intake-accent-soft: color-mix(in srgb, var(--fill-accent-soft) 76%, white 24%);
-  --intake-surface: color-mix(in srgb, var(--bg-surface-elevated) 88%, white 12%);
-  --intake-surface-soft: color-mix(in srgb, var(--bg-surface) 86%, white 14%);
-  --intake-surface-strong: color-mix(in srgb, var(--bg-surface-elevated) 80%, white 20%);
-  --intake-border: color-mix(in srgb, var(--fill-accent) 14%, var(--border-subtle));
-  --intake-border-strong: color-mix(in srgb, var(--fill-accent) 22%, var(--border-default));
-  --intake-shadow: var(--brand-panel-shadow-strong);
-  --intake-input-shadow: 0 0 0 4px color-mix(in srgb, var(--fill-accent) 10%, transparent);
+  --intake-accent-soft:   var(--fill-accent-soft);
+  --intake-surface:       var(--bg-surface-elevated);
+  --intake-surface-inset: var(--bg-surface-inset);
+  --intake-border:        var(--brand-panel-border);
+  --intake-border-strong: color-mix(in srgb, var(--fill-accent) 28%, var(--border-default));
+  --intake-shadow:        var(--brand-panel-shadow-strong);
+  --intake-input-shadow:  0 0 0 3px color-mix(in srgb, var(--fill-accent) 14%, transparent);
+
   min-height: 100dvh;
   position: relative;
   overflow: hidden;
+  /* Тёмный фон с лёгким акцентным свечением — в духе основного KORT */
   background:
-    radial-gradient(circle at 12% 12%, rgba(255, 255, 255, 0.72), transparent 26%),
-    radial-gradient(circle at 80% 18%, color-mix(in srgb, var(--fill-info) 16%, transparent), transparent 22%),
-    radial-gradient(circle at 76% 82%, color-mix(in srgb, var(--fill-accent) 16%, transparent), transparent 22%),
-    linear-gradient(
-      148deg,
-      color-mix(in srgb, var(--fill-accent-soft) 36%, white 64%) 0%,
-      color-mix(in srgb, var(--bg-surface) 80%, white 20%) 48%,
-      color-mix(in srgb, var(--fill-accent-soft) 22%, white 78%) 100%
-    );
+    radial-gradient(circle at 14% 10%, color-mix(in srgb, var(--fill-accent) 14%, transparent), transparent 28%),
+    radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--fill-info) 10%, transparent), transparent 24%),
+    radial-gradient(circle at 72% 80%, color-mix(in srgb, var(--fill-accent) 10%, transparent), transparent 22%),
+    var(--bg-canvas);
   color: var(--intake-ink);
 }
 
+/* ── Декоративные слои фона ── */
 .backdropOrb,
 .backdropGrid {
   position: absolute;
@@ -37,44 +40,38 @@
 
 .backdropOrb {
   background:
-    radial-gradient(circle at 18% 24%, rgba(255, 255, 255, 0.42), transparent 22%),
-    radial-gradient(circle at 70% 18%, color-mix(in srgb, var(--fill-info) 12%, transparent), transparent 20%),
-    radial-gradient(circle at 68% 76%, color-mix(in srgb, var(--fill-accent) 10%, transparent), transparent 24%);
-  filter: blur(12px);
+    radial-gradient(circle at 18% 24%, color-mix(in srgb, var(--fill-accent) 8%, transparent), transparent 22%),
+    radial-gradient(circle at 70% 18%, color-mix(in srgb, var(--fill-info) 6%, transparent), transparent 20%),
+    radial-gradient(circle at 68% 76%, color-mix(in srgb, var(--fill-accent) 6%, transparent), transparent 24%);
+  filter: blur(14px);
 }
 
 .backdropGrid {
-  opacity: 0.22;
+  opacity: 0.14;
   background-image:
-    linear-gradient(color-mix(in srgb, var(--fill-accent) 10%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--fill-accent) 10%, transparent) 1px, transparent 1px);
+    linear-gradient(color-mix(in srgb, var(--fill-accent) 12%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--fill-accent) 12%, transparent) 1px, transparent 1px);
   background-size: 44px 44px;
-  mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.88) 20%, rgba(0, 0, 0, 0.88) 76%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.9) 20%, rgba(0,0,0,0.9) 76%, transparent 100%);
 }
 
+/* ── Shell ── */
 .shell {
   position: relative;
   z-index: 1;
   width: min(1240px, 100%);
   margin: 0 auto;
-  padding: 28px 28px 40px;
+  padding: 28px 28px 48px;
 }
 
 .stage {
   display: grid;
-  grid-template-columns: minmax(360px, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(340px, 0.85fr) minmax(0, 1.15fr);
   gap: 22px;
   align-items: start;
 }
 
-.story,
-.formShell {
-  position: relative;
-  border: 1px solid color-mix(in srgb, white 48%, var(--intake-border));
-  backdrop-filter: blur(18px);
-  box-shadow: var(--intake-shadow);
-}
-
+/* ── Левая панель — Story ── */
 .story {
   position: sticky;
   top: 24px;
@@ -82,23 +79,28 @@
   flex-direction: column;
   gap: 18px;
   padding: 28px;
-  border-radius: 32px;
+  border-radius: 28px;
+  border: 1px solid var(--intake-border);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.76), color-mix(in srgb, var(--intake-surface-soft) 82%, transparent)),
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.5), transparent 34%);
+    radial-gradient(circle at top left, color-mix(in srgb, var(--fill-accent) 10%, transparent), transparent 34%),
+    var(--brand-surface-3);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: var(--intake-shadow);
 }
 
+/* ── Kicker / badge ── */
 .kicker,
 .successKicker {
   width: fit-content;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 32px;
+  min-height: 30px;
   padding: 0 14px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--fill-accent) 16%, transparent);
-  background: color-mix(in srgb, white 74%, var(--fill-accent-soft));
+  border: 1px solid color-mix(in srgb, var(--fill-accent) 22%, var(--border-subtle));
+  background: color-mix(in srgb, var(--fill-accent-soft) 68%, var(--bg-surface));
   color: var(--intake-accent-strong);
   font-size: 12px;
   font-weight: 800;
@@ -106,22 +108,25 @@
   text-transform: uppercase;
 }
 
+/* ── Заголовки ── */
 .title,
 .successTitle {
   margin: 0;
   font-family: var(--font-display);
   line-height: 0.96;
   letter-spacing: -0.055em;
+  color: var(--intake-ink);
 }
 
 .title {
-  font-size: clamp(38px, 5.4vw, 62px);
+  font-size: clamp(36px, 5vw, 58px);
 }
 
+/* ── Story grid ── */
 .storyGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 12px;
 }
 
 .storyCard,
@@ -129,44 +134,41 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-height: 210px;
-  padding: 20px;
-  border-radius: 26px;
+  min-height: 190px;
+  padding: 18px;
+  border-radius: 22px;
   border: 1px solid var(--intake-border);
-  box-shadow: var(--brand-panel-shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 .storyCard {
-  background: color-mix(in srgb, var(--intake-surface) 88%, white 12%);
+  background: color-mix(in srgb, var(--intake-surface) 80%, transparent);
 }
 
 .storyCardAccent {
   color: var(--text-inverse);
   background:
-    radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.1), transparent 28%),
-    linear-gradient(
-      160deg,
-      color-mix(in srgb, var(--fill-accent) 84%, black 16%) 0%,
-      color-mix(in srgb, var(--fill-accent) 70%, white 30%) 48%,
-      color-mix(in srgb, var(--fill-accent) 52%, white 48%) 100%
-    );
+    radial-gradient(circle at 16% 18%, color-mix(in srgb, var(--fill-accent) 18%, transparent), transparent 28%),
+    linear-gradient(160deg, var(--fill-accent) 0%, color-mix(in srgb, var(--fill-accent) 72%, var(--fill-info)) 100%);
 }
 
 .storyHead {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
+  color: inherit;
 }
 
 .storyList {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   color: var(--intake-soft);
+  font-size: 13px;
   line-height: 1.62;
 }
 
 .storyCardAccent .storyList {
-  color: inherit;
+  color: color-mix(in srgb, var(--text-inverse) 82%, transparent);
 }
 
 .storyList div {
@@ -178,23 +180,28 @@
   content: '';
   position: absolute;
   left: 0;
-  top: 10px;
-  width: 7px;
-  height: 7px;
+  top: 9px;
+  width: 6px;
+  height: 6px;
   border-radius: 999px;
   background: currentColor;
   opacity: 0.5;
 }
 
+/* ── Правая панель — Form ── */
 .formShell {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
   padding: 22px;
-  border-radius: 34px;
+  border-radius: 30px;
+  border: 1px solid var(--intake-border);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.78), color-mix(in srgb, var(--intake-surface-soft) 88%, transparent)),
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.32), transparent 32%);
+    radial-gradient(circle at top right, color-mix(in srgb, var(--fill-accent) 8%, transparent), transparent 32%),
+    var(--brand-surface-3);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: var(--intake-shadow);
 }
 
 .formHeader,
@@ -208,33 +215,34 @@
 
 .formTitle {
   color: var(--intake-ink);
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 800;
   letter-spacing: -0.04em;
 }
 
 .formStamp {
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  border-radius: 20px;
+  border-radius: 18px;
   border: 1px solid var(--intake-border);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), color-mix(in srgb, var(--fill-accent-soft) 44%, white 56%));
+  background: color-mix(in srgb, var(--fill-accent-soft) 48%, var(--bg-surface));
   color: var(--intake-accent-strong);
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 800;
-  box-shadow: var(--brand-panel-shadow);
+  box-shadow: var(--shadow-sm);
 }
 
+/* ── Секции формы ── */
 .panel,
 .itemCard,
 .preferenceBlock,
 .calendarPopover,
 .footerNote {
   border: 1px solid var(--intake-border);
-  background: color-mix(in srgb, var(--intake-surface) 92%, white 8%);
+  background: color-mix(in srgb, var(--bg-surface-elevated) 72%, transparent);
   box-shadow: var(--surface-shadow-rest);
 }
 
@@ -243,12 +251,12 @@
   flex-direction: column;
   gap: 16px;
   padding: 18px;
-  border-radius: 28px;
+  border-radius: 24px;
 }
 
 .panelTitle {
   color: var(--intake-ink);
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
@@ -278,23 +286,23 @@
   grid-column: 1 / -1;
 }
 
+/* ── Поля ввода: НЕТ белому фону, только CSS-переменные ── */
 .input,
 .select,
 .textarea,
 .inputWithIcon,
 .calendarTrigger {
   width: 100%;
-  border-radius: 18px;
+  border-radius: 16px;
   border: 1px solid var(--intake-border);
-  background: color-mix(in srgb, white 82%, var(--intake-surface-strong));
+  background: var(--bg-surface-inset);
   color: var(--intake-ink);
   font: inherit;
   outline: none;
   transition:
-    border-color var(--motion-duration-fast) var(--motion-ease-standard),
-    box-shadow var(--motion-duration-fast) var(--motion-ease-standard),
-    transform var(--motion-duration-fast) var(--motion-ease-standard),
-    background var(--motion-duration-fast) var(--motion-ease-standard);
+    border-color var(--motion-fast, 140ms) ease,
+    box-shadow var(--motion-fast, 140ms) ease,
+    background var(--motion-fast, 140ms) ease;
 }
 
 .input:focus,
@@ -304,32 +312,51 @@
 .calendarTrigger:focus-visible {
   border-color: var(--intake-border-strong);
   box-shadow: var(--intake-input-shadow);
+  background: var(--bg-surface-elevated);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--text-placeholder);
 }
 
 .input,
 .select,
 .calendarTrigger {
-  min-height: 54px;
-  padding: 0 16px;
+  min-height: 52px;
+  padding: 0 14px;
 }
 
 .textarea {
-  min-height: 120px;
-  padding: 14px 16px;
+  min-height: 110px;
+  padding: 12px 14px;
   resize: vertical;
   line-height: 1.65;
 }
 
+/* Select: сбрасываем appearance, ставим собственную стрелку через bg-image */
 .select {
   appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23B8A898' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+/* Принудительно красим option для браузеров, которые их рендерят */
+.select option {
+  background: var(--bg-surface-elevated, #1E1A14);
+  color: var(--text-primary, #F0EBE4);
 }
 
 .inputWithIcon {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 54px;
-  padding: 0 16px;
+  min-height: 52px;
+  padding: 0 14px;
   color: var(--intake-soft);
 }
 
@@ -337,17 +364,23 @@
   flex: 1;
   border: none;
   background: transparent;
-  color: inherit;
+  /* Важно: цвет берём напрямую, не inherit от родителя-иконки */
+  color: var(--intake-ink);
   font: inherit;
   outline: none;
 }
 
+.inputBare::placeholder {
+  color: var(--text-placeholder);
+}
+
+/* ── Toggle / Choice кнопки ── */
 .preferenceBlock {
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding: 14px 16px;
-  border-radius: 22px;
+  border-radius: 20px;
 }
 
 .toggleRow,
@@ -356,7 +389,7 @@
 .successMeta {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
 .toggleBtn,
@@ -376,51 +409,49 @@
   font: inherit;
   cursor: pointer;
   transition:
-    transform var(--motion-duration-fast) var(--motion-ease-standard),
-    box-shadow var(--motion-duration-fast) var(--motion-ease-standard),
-    border-color var(--motion-duration-fast) var(--motion-ease-standard),
-    background var(--motion-duration-fast) var(--motion-ease-standard),
-    color var(--motion-duration-fast) var(--motion-ease-standard),
-    opacity var(--motion-duration-fast) var(--motion-ease-standard);
+    transform 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease,
+    color 140ms ease,
+    opacity 140ms ease;
 }
 
 .toggleBtn,
 .choiceBtn {
-  min-height: 40px;
+  min-height: 38px;
   padding: 0 16px;
   border-radius: 999px;
   border: 1px solid var(--intake-border);
-  background: color-mix(in srgb, white 76%, var(--intake-surface-soft));
+  background: var(--bg-surface-inset);
   color: var(--intake-soft);
   font-weight: 700;
 }
 
 .toggleBtnActive,
 .choiceBtnActive {
-  border-color: color-mix(in srgb, var(--fill-accent) 22%, transparent);
-  background: linear-gradient(140deg, color-mix(in srgb, var(--fill-accent-soft) 62%, transparent), color-mix(in srgb, white 60%, var(--fill-accent-soft)));
+  border-color: color-mix(in srgb, var(--fill-accent) 28%, var(--border-default));
+  background: color-mix(in srgb, var(--fill-accent-soft) 72%, var(--bg-surface));
   color: var(--intake-accent-strong);
-  box-shadow: var(--brand-panel-shadow);
 }
 
 .choiceBtn:disabled {
-  opacity: 0.42;
+  opacity: 0.4;
   cursor: not-allowed;
-  box-shadow: none;
 }
 
+/* ── Item cards ── */
 .itemStack {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .itemCard {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 18px;
-  border-radius: 24px;
+  padding: 16px;
+  border-radius: 20px;
 }
 
 .itemHead {
@@ -432,20 +463,21 @@
 
 .itemHead strong {
   color: var(--intake-accent-strong);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
+/* ── Action buttons ── */
 .ghostBtn,
 .removeBtn,
 .submitBtn,
 .closeWindowBtn,
 .secondarySceneBtn {
-  min-height: 44px;
+  min-height: 42px;
   padding: 0 16px;
-  border-radius: 16px;
+  border-radius: 14px;
   font-weight: 700;
 }
 
@@ -453,26 +485,21 @@
 .removeBtn,
 .secondarySceneBtn {
   border: 1px solid var(--intake-border);
-  background: color-mix(in srgb, white 74%, var(--intake-surface-soft));
+  background: var(--bg-surface-inset);
   color: var(--intake-soft);
 }
 
 .removeBtn {
-  width: 44px;
+  width: 42px;
   padding: 0;
 }
 
 .submitBtn,
 .closeWindowBtn {
-  border: 1px solid color-mix(in srgb, var(--fill-accent) 24%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fill-accent) 28%, var(--border-default));
   color: var(--text-inverse);
-  background: linear-gradient(
-    140deg,
-    color-mix(in srgb, var(--fill-accent) 78%, black 22%) 0%,
-    color-mix(in srgb, var(--fill-accent) 62%, white 38%) 42%,
-    color-mix(in srgb, var(--fill-accent) 42%, white 58%) 100%
-  );
-  box-shadow: var(--brand-panel-shadow);
+  background: var(--fill-accent-gradient);
+  box-shadow: var(--shadow-accent);
 }
 
 .toggleBtn:hover,
@@ -489,12 +516,13 @@
 }
 
 .submitBtn:disabled {
-  opacity: 0.56;
+  opacity: 0.5;
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
 }
 
+/* ── Календарь ── */
 .calendarField {
   z-index: 2;
 }
@@ -509,12 +537,14 @@
 
 .calendarPopover {
   position: absolute;
-  top: calc(100% + 10px);
+  top: calc(100% + 8px);
   left: 0;
-  width: min(340px, 100%);
+  width: min(320px, 100%);
   padding: 16px;
-  border-radius: 24px;
+  border-radius: 22px;
   backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: var(--bg-surface-elevated);
 }
 
 .calendarHeader {
@@ -522,22 +552,22 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .calendarHeader strong {
   color: var(--intake-ink);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
   text-transform: capitalize;
 }
 
 .calendarNavBtn {
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   border: 1px solid var(--intake-border);
-  background: color-mix(in srgb, white 72%, var(--intake-surface-soft));
+  background: var(--bg-surface-inset);
   color: var(--intake-soft);
 }
 
@@ -545,11 +575,11 @@
 .calendarGrid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
 }
 
 .calendarWeekdays {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .calendarWeekdays span {
@@ -562,44 +592,45 @@
 }
 
 .calendarDay {
-  height: 40px;
-  border-radius: 14px;
+  height: 38px;
+  border-radius: 12px;
   border: 1px solid var(--intake-border);
-  background: color-mix(in srgb, white 80%, var(--intake-surface-soft));
+  background: var(--bg-surface-inset);
   color: var(--intake-ink);
   font-weight: 700;
+  font-size: 13px;
 }
 
-.calendarDayMuted {
-  opacity: 0.42;
-}
+.calendarDayMuted { opacity: 0.38; }
 
 .calendarDayToday {
-  border-color: color-mix(in srgb, var(--fill-accent) 22%, transparent);
+  border-color: color-mix(in srgb, var(--fill-accent) 28%, var(--border-default));
 }
 
 .calendarDayActive {
-  border-color: color-mix(in srgb, var(--fill-accent) 28%, transparent);
-  background: linear-gradient(140deg, color-mix(in srgb, var(--fill-accent-soft) 64%, transparent), color-mix(in srgb, white 58%, var(--fill-accent-soft)));
+  border-color: color-mix(in srgb, var(--fill-accent) 34%, var(--border-default));
+  background: color-mix(in srgb, var(--fill-accent-soft) 72%, var(--bg-surface));
   color: var(--intake-accent-strong);
 }
 
 .calendarActions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 .calendarClearBtn {
-  min-height: 34px;
+  min-height: 32px;
   padding: 0 12px;
   border-radius: 999px;
   border: 1px solid var(--intake-border);
-  background: color-mix(in srgb, white 76%, var(--intake-surface-soft));
+  background: var(--bg-surface-inset);
   color: var(--intake-soft);
   font-weight: 700;
+  font-size: 13px;
 }
 
+/* ── Footer ── */
 .footer {
   align-items: center;
   flex-wrap: wrap;
@@ -610,7 +641,7 @@
   align-items: flex-start;
   gap: 10px;
   padding: 12px 14px;
-  border-radius: 18px;
+  border-radius: 16px;
   color: var(--intake-soft);
 }
 
@@ -621,7 +652,8 @@
 
 .footerNote strong {
   margin-bottom: 2px;
-  font-size: 13px;
+  font-size: 12px;
+  color: var(--intake-ink);
 }
 
 .footerNote span {
@@ -629,19 +661,17 @@
   line-height: 1.55;
 }
 
+/* ── Loading ── */
 .loading {
   min-height: 100dvh;
   display: grid;
   place-items: center;
   gap: 10px;
-  background: linear-gradient(
-    160deg,
-    color-mix(in srgb, var(--fill-accent-soft) 34%, white 66%) 0%,
-    color-mix(in srgb, var(--bg-surface) 84%, white 16%) 100%
-  );
+  background: var(--bg-canvas);
   color: var(--intake-soft);
 }
 
+/* ── Success screen ── */
 .successScene {
   position: fixed;
   inset: 0;
@@ -649,7 +679,7 @@
   display: grid;
   place-items: center;
   overflow: hidden;
-  background: radial-gradient(circle at center, rgba(18, 15, 13, 0.32), rgba(7, 5, 3, 0.88));
+  background: color-mix(in srgb, var(--bg-canvas) 72%, transparent);
 }
 
 .successVideo,
@@ -676,8 +706,8 @@
 
 .successFog {
   background:
-    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.38), transparent 30%),
-    linear-gradient(180deg, rgba(242, 236, 228, 0.68) 0%, rgba(15, 12, 10, 0.52) 100%);
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--fill-accent) 8%, transparent), transparent 30%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-canvas) 62%, transparent) 0%, color-mix(in srgb, var(--bg-canvas) 42%, transparent) 100%);
   backdrop-filter: blur(26px);
   opacity: 1;
   transition: opacity 1800ms ease, backdrop-filter 1800ms ease;
@@ -690,29 +720,27 @@
 
 .successGlow {
   background:
-    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.22), transparent 18%),
-    radial-gradient(circle at 50% 58%, color-mix(in srgb, var(--fill-accent) 24%, transparent), transparent 28%);
+    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--fill-accent) 14%, transparent), transparent 18%),
+    radial-gradient(circle at 50% 58%, color-mix(in srgb, var(--fill-accent) 18%, transparent), transparent 28%);
   opacity: 0;
   transition: opacity 2200ms ease 220ms;
 }
 
-.successGlowReady {
-  opacity: 1;
-}
+.successGlowReady { opacity: 1; }
 
 .successPanel {
   position: relative;
   z-index: 1;
-  width: min(620px, calc(100% - 28px));
+  width: min(600px, calc(100% - 28px));
   display: flex;
   flex-direction: column;
   gap: 18px;
   padding: 28px;
-  border-radius: 32px;
-  border: 1px solid color-mix(in srgb, white 20%, transparent);
-  background: color-mix(in srgb, black 56%, rgba(255, 255, 255, 0.06));
-  color: var(--text-inverse);
-  box-shadow: 0 42px 120px -56px rgba(0, 0, 0, 0.8);
+  border-radius: 30px;
+  border: 1px solid color-mix(in srgb, var(--fill-accent) 18%, var(--border-subtle));
+  background: color-mix(in srgb, var(--bg-surface-elevated) 88%, transparent);
+  color: var(--text-primary);
+  box-shadow: var(--brand-panel-shadow-strong);
   backdrop-filter: blur(16px);
   opacity: 0;
   transform: translateY(22px) scale(0.985);
@@ -727,54 +755,49 @@
 }
 
 .successTitle {
-  font-size: clamp(30px, 5vw, 48px);
+  font-size: clamp(28px, 4.5vw, 44px);
+  color: var(--text-primary);
 }
 
 .successText {
   margin: 0;
-  color: color-mix(in srgb, var(--text-inverse) 84%, transparent);
+  color: var(--text-secondary);
   line-height: 1.7;
 }
 
 .successMeta span {
-  min-height: 34px;
+  min-height: 32px;
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 0 14px;
+  padding: 0 12px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, white 14%, transparent);
-  background: color-mix(in srgb, white 8%, transparent);
-  color: color-mix(in srgb, var(--text-inverse) 90%, transparent);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-inset);
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
 }
 
 .secondarySceneBtn {
-  color: color-mix(in srgb, var(--text-inverse) 88%, transparent);
-  background: color-mix(in srgb, white 8%, transparent);
-  border-color: color-mix(in srgb, white 14%, transparent);
+  color: var(--text-secondary);
+  background: var(--bg-surface-inset);
+  border-color: var(--border-default);
 }
 
+/* ── Responsive ── */
 @media (max-width: 1080px) {
-  .stage {
-    grid-template-columns: 1fr;
-  }
-
-  .story {
-    position: static;
-  }
+  .stage { grid-template-columns: 1fr; }
+  .story { position: static; }
 }
 
 @media (max-width: 760px) {
-  .shell {
-    padding: 16px 14px 22px;
-  }
+  .shell { padding: 14px 14px 24px; }
 
   .story,
   .formShell {
     padding: 18px;
-    border-radius: 28px;
+    border-radius: 24px;
   }
 
   .grid,
@@ -804,15 +827,10 @@
   }
 
   .formStamp {
-    width: 48px;
-    height: 48px;
+    width: 46px;
+    height: 46px;
   }
 
-  .calendarPopover {
-    width: 100%;
-  }
-
-  .successPanel {
-    padding: 20px;
-  }
+  .calendarPopover { width: 100%; }
+  .successPanel { padding: 20px; }
 }

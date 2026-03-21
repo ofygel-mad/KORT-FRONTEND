@@ -47,54 +47,16 @@
 }
 
 .meta {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-}
-
-.label {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  width: fit-content;
-  min-height: 26px;
-  padding: 0 10px;
-  border-radius: 999px;
-  border: 1px solid var(--status-shell-border);
-  background: var(--rc-badge-neutral-bg);
-  color: var(--text-secondary);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.label[data-tone='live'] {
-  background: var(--rc-badge-success-bg);
-  color: var(--fill-positive-text);
-}
-
-.label[data-tone='template'] {
-  background: color-mix(in srgb, var(--fill-info-soft) 78%, var(--bg-surface));
-  color: var(--fill-info-text);
-}
-
-.label[data-tone='locked'] {
-  background: var(--rc-badge-danger-bg);
-  color: var(--fill-negative-text);
+  min-width: 0;
 }
 
 .title {
   color: var(--text-primary);
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 800;
-  line-height: 1.1;
-}
-
-.subtitle {
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.6;
-  max-width: 720px;
+  line-height: 1.2;
 }
 
 .body {

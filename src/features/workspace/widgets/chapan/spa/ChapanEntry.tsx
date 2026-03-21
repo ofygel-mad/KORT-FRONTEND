@@ -21,10 +21,7 @@ export function ChapanEntry({ tileId }: { tileId: string }) {
   if (activeWorkspace === 'template') {
     return (
       <ProductionWorkspaceShell
-        label="Шаблон"
         title={templateName}
-        subtitle="Типовой production-space для подключения нового производства без переписывания ядра."
-        tone="template"
         onBack={goHome}
       >
         <ProductionTemplateSPA tileId={tileId} />
@@ -35,10 +32,7 @@ export function ChapanEntry({ tileId }: { tileId: string }) {
   if (canSeeManagerConsole(role)) {
     return (
       <ProductionWorkspaceShell
-        label="Действующее"
         title={profileName}
-        subtitle="Текущий производственный контур компании на существующей логике."
-        tone="live"
         onBack={goHome}
       >
         <ChapanSPA tileId={tileId} />
@@ -49,10 +43,7 @@ export function ChapanEntry({ tileId }: { tileId: string }) {
   if (canSeeWorkshopConsole(role)) {
     return (
       <ProductionWorkspaceShell
-        label="Контур цеха"
         title={profileName}
-        subtitle="Операционный экран для роли цеха без клиентских данных."
-        tone="live"
         onBack={goHome}
       >
         <WorkshopConsole />
@@ -62,10 +53,7 @@ export function ChapanEntry({ tileId }: { tileId: string }) {
 
   return (
     <ProductionWorkspaceShell
-      label="Ограничено"
       title={profileName}
-      subtitle="Роль внутри производственного пространства ещё не назначена."
-      tone="locked"
       onBack={goHome}
     >
       <div className={s.denied}>

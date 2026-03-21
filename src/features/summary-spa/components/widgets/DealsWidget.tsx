@@ -8,11 +8,11 @@ import s from './Widgets.module.css';
 type Tone = 'info' | 'violet' | 'warning' | 'magenta' | 'accent' | 'muted';
 
 const STAGE_LABEL: Record<string, string> = {
-  awaiting_meeting: 'РћР¶РёРґР°РµС‚ РІСЃС‚СЂРµС‡Рё',
-  meeting_done: 'Р’СЃС‚СЂРµС‡Р°',
-  proposal: 'РљРџ',
-  contract: 'Р”РѕРіРѕРІРѕСЂ',
-  awaiting_payment: 'РћРїР»Р°С‚Р°',
+  awaiting_meeting: 'Ожидает встречи',
+  meeting_done: 'Встреча',
+  proposal: 'КП',
+  contract: 'Договор',
+  awaiting_payment: 'Оплата',
 };
 
 const STAGE_TONES: Record<string, Tone> = {
@@ -33,9 +33,9 @@ const TONE_CLASS: Record<Tone, string> = {
 };
 
 function fmtMoney(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'Рњ в‚ё';
-  if (n >= 1_000) return Math.round(n / 1_000) + 'Рє в‚ё';
-  return n + ' в‚ё';
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'М ₸';
+  if (n >= 1_000) return Math.round(n / 1_000) + 'к ₸';
+  return n + ' ₸';
 }
 
 export function DealsFunnelWidget() {
@@ -44,8 +44,8 @@ export function DealsFunnelWidget() {
   if (!dealsSnap) {
     return (
       <div className={s.chartCard}>
-        <div className={s.chartTitle}>Р’РѕСЂРѕРЅРєР° СЃРґРµР»РѕРє</div>
-        <div className={s.emptyFeed}>РћР¶РёРґР°РЅРёРµ РґР°РЅРЅС‹С… РѕС‚ Deals SPAвЂ¦</div>
+        <div className={s.chartTitle}>Воронка сделок</div>
+        <div className={s.emptyFeed}>Ожидание данных от Deals SPA…</div>
       </div>
     );
   }
@@ -63,17 +63,17 @@ export function DealsFunnelWidget() {
     <div className={s.chartCard}>
       <div className={s.chartHeader}>
         <div>
-          <div className={s.chartTitle}>Р’РѕСЂРѕРЅРєР° СЃРґРµР»РѕРє</div>
-          <div className={s.chartSubtitle}>{dealsSnap.totalActive} Р°РєС‚РёРІРЅС‹С… СЃРґРµР»РѕРє</div>
+          <div className={s.chartTitle}>Воронка сделок</div>
+          <div className={s.chartSubtitle}>{dealsSnap.totalActive} активных сделок</div>
         </div>
         <div className={s.chartStatGroup}>
           <div className={`${s.chartStat} ${s.tonePositive}`}>
             <div className={s.chartStatValue}>{dealsSnap.totalWon}</div>
-            <div className={s.chartStatLabel}>РІС‹РёРіСЂР°РЅРѕ</div>
+            <div className={s.chartStatLabel}>выиграно</div>
           </div>
           <div className={`${s.chartStat} ${s.toneDanger}`}>
             <div className={s.chartStatValue}>{dealsSnap.totalLost}</div>
-            <div className={s.chartStatLabel}>РїСЂРѕРёРіСЂР°РЅРѕ</div>
+            <div className={s.chartStatLabel}>проиграно</div>
           </div>
         </div>
       </div>
@@ -84,7 +84,7 @@ export function DealsFunnelWidget() {
             <div className={s.funnelRowHeader}>
               <span className={s.funnelLabel}>{STAGE_LABEL[stage] ?? stage}</span>
               <span className={s.funnelValue}>
-                {count} В· {fmtMoney(value)}
+                {count} · {fmtMoney(value)}
               </span>
             </div>
             <div className={s.funnelTrack}>
@@ -106,8 +106,8 @@ export function LostReasonsWidget() {
   if (!dealsSnap || Object.keys(dealsSnap.lostReasonBreakdown).length === 0) {
     return (
       <div className={s.chartCard}>
-        <div className={s.sectionTitle}>РџСЂРёС‡РёРЅС‹ СЃР»РёРІР°</div>
-        <div className={s.emptyFeed}>РќРµС‚ РґР°РЅРЅС‹С…</div>
+        <div className={s.sectionTitle}>Причины слива</div>
+        <div className={s.emptyFeed}>Нет данных</div>
       </div>
     );
   }
@@ -117,7 +117,7 @@ export function LostReasonsWidget() {
 
   return (
     <div className={s.chartCard}>
-      <div className={s.sectionTitle}>РџСЂРёС‡РёРЅС‹ СЃР»РёРІР°</div>
+      <div className={s.sectionTitle}>Причины слива</div>
       <div className={s.reasonList}>
         {reasons.map(([reason, count]) => (
           <div key={reason} className={s.reasonRow}>

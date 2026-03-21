@@ -8,17 +8,17 @@ import s from './Widgets.module.css';
 type Tone = 'muted' | 'info' | 'danger' | 'warning' | 'positive' | 'violet' | 'magenta' | 'accent';
 
 const STAGE_LABEL: Record<string, string> = {
-  new: 'РќРѕРІС‹Рµ',
-  in_progress: 'Р’ СЂР°Р±РѕС‚Рµ',
-  no_answer: 'РќРµС‚ РѕС‚РІРµС‚Р°',
-  thinking: 'Р”СѓРјР°СЋС‚',
-  meeting_set: 'Р’СЃС‚СЂРµС‡Р° РЅР°Р·РЅР°С‡РµРЅР°',
-  junk: 'РњСѓСЃРѕСЂ',
-  awaiting_meeting: 'РћР¶РёРґР°РµС‚ РІСЃС‚СЂРµС‡Рё',
-  meeting_done: 'Р’СЃС‚СЂРµС‡Р° РїСЂРѕРІРµРґРµРЅР°',
-  proposal: 'РљРџ',
-  contract: 'Р”РѕРіРѕРІРѕСЂ',
-  awaiting_payment: 'РћРїР»Р°С‚Р°',
+  new: 'Новые',
+  in_progress: 'В работе',
+  no_answer: 'Нет ответа',
+  thinking: 'Думают',
+  meeting_set: 'Встреча назначена',
+  junk: 'Мусор',
+  awaiting_meeting: 'Ожидает встречи',
+  meeting_done: 'Встреча проведена',
+  proposal: 'КП',
+  contract: 'Договор',
+  awaiting_payment: 'Оплата',
 };
 
 const STAGE_TONE: Record<string, Tone> = {
@@ -52,8 +52,8 @@ export function LeadsWidget() {
   if (!leadsSnap) {
     return (
       <div className={s.chartCard}>
-        <div className={s.chartTitle}>Р›РёРґС‹</div>
-        <div className={s.emptyFeed}>РћР¶РёРґР°РЅРёРµ РґР°РЅРЅС‹С… РѕС‚ Leads SPAвЂ¦</div>
+        <div className={s.chartTitle}>Лиды</div>
+        <div className={s.emptyFeed}>Ожидание данных от Leads SPA…</div>
       </div>
     );
   }
@@ -68,7 +68,7 @@ export function LeadsWidget() {
 
   return (
     <div className={s.chartCard}>
-      <div className={s.chartTitle}>Р›РёРґС‹</div>
+      <div className={s.chartTitle}>Лиды</div>
 
       <div className={s.conversionWrap}>
         <div className={s.donutWrap}>
@@ -87,17 +87,17 @@ export function LeadsWidget() {
           </svg>
           <div className={s.donutCenter}>
             <div className={s.donutValue}>{convPct}%</div>
-            <div className={s.donutLabel}>РєРѕРЅРІРµСЂСЃРёСЏ</div>
+            <div className={s.donutLabel}>конверсия</div>
           </div>
         </div>
 
         <div className={s.conversionStats}>
           <div className={s.conversionStat}>
-            <span>Р’СЃРµРіРѕ Р»РёРґРѕРІ</span>
+            <span>Всего лидов</span>
             <span className={s.conversionStatValue}>{leadsSnap.totalLeads}</span>
           </div>
           <div className={s.conversionStat}>
-            <span>РџРµСЂРµРґР°РЅРѕ РІ СЃРґРµР»РєРё</span>
+            <span>Передано в сделки</span>
             <span className={`${s.conversionStatValue} ${s.conversionPositive} ${s.tonePositive}`}>
               {leadsSnap.convertedThisMonth}
             </span>

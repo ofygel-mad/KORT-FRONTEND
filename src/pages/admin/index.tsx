@@ -43,9 +43,9 @@ type StatToneClass = 'statToneInfo' | 'statTonePositive' | 'statToneWarning' | '
 type PlanToneClass = 'planToneInfo' | 'planToneWarning' | 'planToneViolet';
 
 const MODE_LABELS: Record<string, string> = {
-  basic: 'Р‘Р°Р·РѕРІС‹Р№',
-  advanced: 'РџСЂРѕРґРІРёРЅСѓС‚С‹Р№',
-  industrial: 'РџСЂРѕРјС‹С€Р»РµРЅРЅС‹Р№',
+  basic: 'Базовый',
+  advanced: 'Продвинутый',
+  industrial: 'Промышленный',
 };
 
 const MODE_OPTIONS: Array<{
@@ -58,38 +58,38 @@ const MODE_OPTIONS: Array<{
 }> = [
   {
     key: 'basic',
-    title: 'Р‘Р°Р·РѕРІС‹Р№',
+    title: 'Базовый',
     eyebrow: 'Core workspace',
-    description: 'РЎС‚Р°СЂС‚РѕРІС‹Р№ СЂР°Р±РѕС‡РёР№ РєРѕРЅС‚СѓСЂ РґР»СЏ РїСЂРѕРґР°Р¶, РєР»РёРµРЅС‚РѕРІ Рё Р±Р°Р·РѕРІРѕРіРѕ РґРѕСЃС‚СѓРїР°.',
+    description: 'Стартовый рабочий контур для продаж, клиентов и базового доступа.',
     toneClass: 'planToneInfo',
     features: [
-      'Р•РґРёРЅР°СЏ Р±Р°Р·Р° РєР»РёРµРЅС‚РѕРІ Рё СЃРґРµР»РѕРє',
-      'РЎС‚Р°РЅРґР°СЂС‚РЅС‹Рµ СЂРѕР»Рё РєРѕРјР°РЅРґС‹',
-      'Р§РёСЃС‚С‹Р№ onboarding РґР»СЏ РЅРѕРІС‹С… СЃРѕС‚СЂСѓРґРЅРёРєРѕРІ',
+      'Единая база клиентов и сделок',
+      'Стандартные роли команды',
+      'Чистый onboarding для новых сотрудников',
     ],
   },
   {
     key: 'advanced',
-    title: 'РџСЂРѕРґРІРёРЅСѓС‚С‹Р№',
+    title: 'Продвинутый',
     eyebrow: 'Team operations',
-    description: 'Р РµР¶РёРј РґР»СЏ РєРѕРјР°РЅРґС‹, РєРѕС‚РѕСЂР°СЏ СѓР¶Рµ Р¶РёРІС‘С‚ РІ РёРЅРІР°Р№С‚Р°С…, Р·Р°СЏРІРєР°С… Рё СЂРѕР»СЏС….',
+    description: 'Режим для команды, которая уже живёт в инвайтах, заявках и ролях.',
     toneClass: 'planToneWarning',
     features: [
-      'Р РµС„РµСЂР°Р»СЊРЅС‹Рµ СЃСЃС‹Р»РєРё Рё СѓРїСЂР°РІР»РµРЅРёРµ membership',
-      'Р“РёР±РєРѕРµ СЂР°СЃРїСЂРµРґРµР»РµРЅРёРµ СЂРѕР»РµР№ РІРЅСѓС‚СЂРё РєРѕРјР°РЅРґС‹',
-      'РџРѕРґРіРѕС‚РѕРІР»РµРЅРЅС‹Р№ СЃР»РѕР№ РїРѕРґ backend-РїСЂР°РІРёР»Р°',
+      'Реферальные ссылки и управление membership',
+      'Гибкое распределение ролей внутри команды',
+      'Подготовленный слой под backend-правила',
     ],
   },
   {
     key: 'industrial',
-    title: 'РџСЂРѕРјС‹С€Р»РµРЅРЅС‹Р№',
+    title: 'Промышленный',
     eyebrow: 'Scale and governance',
-    description: 'РўСЏР¶С‘Р»С‹Р№ РєРѕРЅС‚СѓСЂ РґР»СЏ РјР°СЃС€С‚Р°Р±РёСЂРѕРІР°РЅРёСЏ, СЃР»РѕР¶РЅС‹С… РїСЂРѕС†РµСЃСЃРѕРІ Рё РіР»СѓР±РѕРєРёС… СЃС†РµРЅР°СЂРёРµРІ.',
+    description: 'Тяжёлый контур для масштабирования, сложных процессов и глубоких сценариев.',
     toneClass: 'planToneViolet',
     features: [
-      'Р”Р»РёРЅРЅС‹Рµ РѕРїРµСЂР°С†РёРѕРЅРЅС‹Рµ С†РµРїРѕС‡РєРё Рё РјРѕРґСѓР»Рё',
-      'РЎС‚СЂРѕРіР°СЏ РјРѕРґРµР»СЊ РїСЂР°РІ Рё РІРЅСѓС‚СЂРµРЅРЅРёС… СЂРѕР»РµР№',
-      'Р“РѕС‚РѕРІРЅРѕСЃС‚СЊ Рє РјР°СЃС€С‚Р°Р±Сѓ Рё СЂР°СЃС€РёСЂРµРЅРёСЋ СЃС‚РµРєР°',
+      'Длинные операционные цепочки и модули',
+      'Строгая модель прав и внутренних ролей',
+      'Готовность к масштабу и расширению стека',
     ],
   },
 ];
@@ -124,7 +124,7 @@ export default function AdminPage() {
     mutationFn: () => api.post<InviteRecord>('/admin/invites/', { role: inviteRole, kind: 'referral' }),
     onSuccess: (invite) => {
       queryClient.invalidateQueries({ queryKey: ['admin-invites'] });
-      toast.success(`РЎСЃС‹Р»РєР° РґР»СЏ СЂРѕР»Рё ${invite.role} СЃРѕР·РґР°РЅР°`);
+      toast.success(`Ссылка для роли ${invite.role} создана`);
     },
   });
 
@@ -133,7 +133,7 @@ export default function AdminPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-membership-requests'] });
       queryClient.invalidateQueries({ queryKey: ['team'] });
-      toast.success('Р—Р°СЏРІРєР° РїРѕРґС‚РІРµСЂР¶РґРµРЅР°');
+      toast.success('Заявка подтверждена');
     },
   });
 
@@ -141,7 +141,7 @@ export default function AdminPage() {
     mutationFn: (requestId: string) => api.post(`/admin/membership-requests/${requestId}/reject/`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-membership-requests'] });
-      toast.success('Р—Р°СЏРІРєР° РѕС‚РєР»РѕРЅРµРЅР°');
+      toast.success('Заявка отклонена');
     },
   });
 
@@ -149,7 +149,7 @@ export default function AdminPage() {
     mutationFn: ({ userId, role }: { userId: string; role: string }) => api.patch(`/users/${userId}/role/`, { role }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team'] });
-      toast.success('Р РѕР»СЊ РѕР±РЅРѕРІР»РµРЅР°');
+      toast.success('Роль обновлена');
     },
   });
 
@@ -157,7 +157,7 @@ export default function AdminPage() {
     mutationFn: ({ userId, active }: { userId: string; active: boolean }) => api.post(`/users/${userId}/${active ? 'deactivate' : 'activate'}/`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team'] });
-      toast.success('РЎС‚Р°С‚СѓСЃ СЃРѕС‚СЂСѓРґРЅРёРєР° РѕР±РЅРѕРІР»С‘РЅ');
+      toast.success('Статус сотрудника обновлён');
     },
   });
 
@@ -165,17 +165,17 @@ export default function AdminPage() {
     mutationFn: (mode: string) => api.patch('/organization/', { mode }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['organization'] });
-      toast.success('Р РµР¶РёРј РєРѕРјРїР°РЅРёРё РѕР±РЅРѕРІР»С‘РЅ');
+      toast.success('Режим компании обновлён');
       reloadWindow();
     },
   });
 
   const tabs = useMemo(
     () => [
-      { key: 'overview' as const, label: 'РћР±Р·РѕСЂ', icon: <BarChart2 size={15} /> },
-      { key: 'team' as const, label: 'РљРѕРјР°РЅРґР°', icon: <Users size={15} /> },
-      { key: 'requests' as const, label: 'Р—Р°СЏРІРєРё', icon: <Activity size={15} /> },
-      { key: 'settings' as const, label: 'Р РµР¶РёРј', icon: <Settings2 size={15} /> },
+      { key: 'overview' as const, label: 'Обзор', icon: <BarChart2 size={15} /> },
+      { key: 'team' as const, label: 'Команда', icon: <Users size={15} /> },
+      { key: 'requests' as const, label: 'Заявки', icon: <Activity size={15} /> },
+      { key: 'settings' as const, label: 'Режим', icon: <Settings2 size={15} /> },
     ],
     [],
   );
@@ -195,20 +195,20 @@ export default function AdminPage() {
     icon: JSX.Element;
     toneClass: StatToneClass;
   }> = [
-    { label: 'РљР»РёРµРЅС‚РѕРІ', value: statsQuery.data?.customers_count, icon: <Users size={20} />, toneClass: 'statToneInfo' },
-    { label: 'РђРєС‚РёРІРЅС‹С… СЃРґРµР»РѕРє', value: statsQuery.data?.active_deals_count, icon: <TrendingUp size={20} />, toneClass: 'statTonePositive' },
-    { label: 'Р—Р°РґР°С‡ СЃРµРіРѕРґРЅСЏ', value: statsQuery.data?.tasks_today, icon: <UserCheck size={20} />, toneClass: 'statToneWarning' },
-    { label: 'РџСЂРѕСЃСЂРѕС‡РµРЅРѕ', value: statsQuery.data?.overdue_tasks, icon: <Activity size={20} />, toneClass: 'statToneViolet' },
+    { label: 'Клиентов', value: statsQuery.data?.customers_count, icon: <Users size={20} />, toneClass: 'statToneInfo' },
+    { label: 'Активных сделок', value: statsQuery.data?.active_deals_count, icon: <TrendingUp size={20} />, toneClass: 'statTonePositive' },
+    { label: 'Задач сегодня', value: statsQuery.data?.tasks_today, icon: <UserCheck size={20} />, toneClass: 'statToneWarning' },
+    { label: 'Просрочено', value: statsQuery.data?.overdue_tasks, icon: <Activity size={20} />, toneClass: 'statToneViolet' },
   ];
 
   return (
     <div className={styles.page}>
       <PageHeader
-        title="РџР°РЅРµР»СЊ СѓРїСЂР°РІР»РµРЅРёСЏ"
-        subtitle={`РћСЂРіР°РЅРёР·Р°С†РёСЏ: ${org?.name ?? 'вЂ”'} вЂў Р РµР¶РёРј: ${MODE_LABELS[org?.mode ?? 'basic']}`}
+        title="Панель управления"
+        subtitle={`Организация: ${org?.name ?? '—'} • Режим: ${MODE_LABELS[org?.mode ?? 'basic']}`}
       />
 
-      <div className={styles.tabs} role="tablist" aria-label="Р Р°Р·РґРµР»С‹ РїР°РЅРµР»Рё" onKeyDown={onTabKeyDown}>
+      <div className={styles.tabs} role="tablist" aria-label="Разделы панели" onKeyDown={onTabKeyDown}>
         {tabs.map((tab) => (
           <button
             key={tab.key}
@@ -229,7 +229,7 @@ export default function AdminPage() {
                 <div key={card.label} className={`${styles.statCard} ${styles[card.toneClass]}`}>
                   <div className={styles.statIcon}>{card.icon}</div>
                   <div className={styles.statValue}>
-                    {statsQuery.isLoading ? <Skeleton height={28} width={60} /> : (card.value ?? 'вЂ”')}
+                    {statsQuery.isLoading ? <Skeleton height={28} width={60} /> : (card.value ?? '—')}
                   </div>
                   <div className={styles.statLabel}>{card.label}</div>
                 </div>
@@ -237,11 +237,11 @@ export default function AdminPage() {
             </div>
 
             <div className={styles.surfaceCard}>
-              <h3 className={styles.surfaceTitle}>РљР°Рє С‚РµРїРµСЂСЊ СѓСЃС‚СЂРѕРµРЅ РґРѕСЃС‚СѓРї</h3>
+              <h3 className={styles.surfaceTitle}>Как теперь устроен доступ</h3>
               <div className={styles.helperText}>
-                Р’Р»Р°РґРµР»РµС† Р±РёР·РЅРµСЃР° СЂР°Р±РѕС‚Р°РµС‚ РєР°Рє owner/admin СЃ СЂР°Р·Сѓ Р°РєС‚РёРІРЅРѕР№ РєРѕРјРїР°РЅРёРµР№.
-                РЎРѕС‚СЂСѓРґРЅРёРєРё РїРѕРґРєР»СЋС‡Р°СЋС‚СЃСЏ С‡РµСЂРµР· Р·Р°СЏРІРєСѓ РёР»Рё РёРЅРІР°Р№С‚, Р° РґРѕСЃС‚СѓРї Рє РІРЅСѓС‚СЂРµРЅРЅРµРјСѓ РєРѕРЅС‚СѓСЂСѓ РѕС‚РєСЂС‹РІР°РµС‚СЃСЏ
-                С‚РѕР»СЊРєРѕ РїРѕСЃР»Рµ Р°РєС‚РёРІРЅРѕРіРѕ membership. Р­С‚РѕС‚ СЌРєСЂР°РЅ РґР°С‘С‚ owner-СЃР»РѕР№ Р±РµР· Р»РёС€РЅРµР№ РЅР°РІРёРіР°С†РёРѕРЅРЅРѕР№ С€СѓРјРёС…Рё.
+                Владелец бизнеса работает как owner/admin уже с активной компанией.
+                Сотрудники подключаются через заявку или инвайт, а доступ к внутреннему контуру открывается
+                только после активного membership. Этот экран даёт owner-слой без лишней навигационной шумихи.
               </div>
             </div>
           </motion.div>
@@ -250,26 +250,26 @@ export default function AdminPage() {
         {activeTab === 'team' && (
           <motion.div key="team" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={styles.tabPanel}>
             <div className={styles.teamHeader}>
-              <span className={styles.memberCount}>{team.length} СЃРѕС‚СЂСѓРґРЅРёРєРѕРІ</span>
+              <span className={styles.memberCount}>{team.length} сотрудников</span>
             </div>
 
             <div className={styles.inviteWrap}>
               <div className={styles.inviteCard}>
                 <div className={styles.inviteMeta}>
-                  <div className={styles.inviteTitle}>Р РµС„РµСЂР°Р»СЊРЅР°СЏ СЃСЃС‹Р»РєР° РєРѕРјР°РЅРґС‹</div>
+                  <div className={styles.inviteTitle}>Реферальная ссылка команды</div>
                   <div className={styles.inviteSubtitle}>
-                    Р’С‹Р±РµСЂРёС‚Рµ СЂРѕР»СЊ Рё СЃРѕР·РґР°Р№С‚Рµ СѓРїСЂР°РІР»СЏРµРјСѓСЋ СЃСЃС‹Р»РєСѓ РґР»СЏ Р±С‹СЃС‚СЂРѕРіРѕ РїРѕРґРєР»СЋС‡РµРЅРёСЏ СЃРѕС‚СЂСѓРґРЅРёРєР°.
+                    Выберите роль и создайте управляемую ссылку для быстрого подключения сотрудника.
                   </div>
                 </div>
 
                 <div className={styles.inviteForm}>
                   <select className={styles.inviteSelect} value={inviteRole} onChange={(event) => setInviteRole(event.target.value)}>
-                    <option value="admin">РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ</option>
-                    <option value="manager">РњРµРЅРµРґР¶РµСЂ</option>
-                    <option value="viewer">РќР°Р±Р»СЋРґР°С‚РµР»СЊ</option>
+                    <option value="admin">Администратор</option>
+                    <option value="manager">Менеджер</option>
+                    <option value="viewer">Наблюдатель</option>
                   </select>
                   <Button size="sm" loading={createInvite.isPending} icon={<Send size={13} />} onClick={() => createInvite.mutate()}>
-                    РЎРѕР·РґР°С‚СЊ СЃСЃС‹Р»РєСѓ
+                    Создать ссылку
                   </Button>
                 </div>
 
@@ -281,10 +281,10 @@ export default function AdminPage() {
                       icon={<Copy size={13} />}
                       onClick={async () => {
                         const copied = await copyToClipboard(recentInvite.share_url);
-                        toast[copied ? 'success' : 'error'](copied ? 'РЎСЃС‹Р»РєР° СЃРєРѕРїРёСЂРѕРІР°РЅР°' : 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРєРѕРїРёСЂРѕРІР°С‚СЊ СЃСЃС‹Р»РєСѓ');
+                        toast[copied ? 'success' : 'error'](copied ? 'Ссылка скопирована' : 'Не удалось скопировать ссылку');
                       }}
                     >
-                      РљРѕРїРёСЂРѕРІР°С‚СЊ
+                      Копировать
                     </Button>
                   </div>
                 )}
@@ -353,8 +353,8 @@ export default function AdminPage() {
               {!requestsQuery.isLoading && !requests.length && (
                 <EmptyState
                   icon={<Activity size={18} />}
-                  title="РќРѕРІС‹С… Р·Р°СЏРІРѕРє РЅРµС‚"
-                  description="РљРѕРіРґР° СЃРѕС‚СЂСѓРґРЅРёРє РІС‹Р±РµСЂРµС‚ РєРѕРјРїР°РЅРёСЋ РІ РЅР°СЃС‚СЂРѕР№РєР°С…, Р·Р°СЏРІРєР° РїРѕСЏРІРёС‚СЃСЏ Р·РґРµСЃСЊ."
+                  title="Новых заявок нет"
+                  description="Когда сотрудник выберет компанию в настройках, заявка появится здесь."
                 />
               )}
               {requests.map((request) => (
@@ -368,8 +368,8 @@ export default function AdminPage() {
                   </div>
                   <div className={styles.memberActions}>
                     <span className={styles.memberCount}>{request.company_name}</span>
-                    <Button size="sm" onClick={() => approveRequest.mutate(request.id)}>РџРѕРґС‚РІРµСЂРґРёС‚СЊ</Button>
-                    <Button size="sm" variant="secondary" onClick={() => rejectRequest.mutate(request.id)}>РћС‚РєР»РѕРЅРёС‚СЊ</Button>
+                    <Button size="sm" onClick={() => approveRequest.mutate(request.id)}>Подтвердить</Button>
+                    <Button size="sm" variant="secondary" onClick={() => rejectRequest.mutate(request.id)}>Отклонить</Button>
                   </div>
                 </div>
               ))}
@@ -381,13 +381,13 @@ export default function AdminPage() {
           <motion.div key="settings" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={styles.tabPanel}>
             {!isOwner && !canManageBilling && (
               <div className={styles.warningBanner}>
-                <span className={styles.warningText}>РўРѕР»СЊРєРѕ РІР»Р°РґРµР»РµС† Р±РёР·РЅРµСЃР° РјРѕР¶РµС‚ РјРµРЅСЏС‚СЊ СЂРµР¶РёРј РєРѕРјРїР°РЅРёРё.</span>
+                <span className={styles.warningText}>Только владелец бизнеса может менять режим компании.</span>
               </div>
             )}
 
             <p className={styles.modeDescription}>
-              РўРµРєСѓС‰РёР№ СЂРµР¶РёРј: <strong>{MODE_LABELS[org?.mode ?? 'basic']}</strong>. Р­С‚Рѕ С‚РѕС‡РєР° СѓРїСЂР°РІР»РµРЅРёСЏ РґРѕСЃС‚СѓРїРѕРј, СЂРѕР»СЏРјРё Рё С‚РµРј,
-              РєР°РєРѕР№ СЃР»РѕР¶РЅРѕСЃС‚Рё РѕРїРµСЂР°С†РёРѕРЅРЅС‹Р№ РєРѕРЅС‚СѓСЂ СЃРµР№С‡Р°СЃ РѕС‚РєСЂС‹С‚ РґР»СЏ РєРѕРјР°РЅРґС‹.
+              Текущий режим: <strong>{MODE_LABELS[org?.mode ?? 'basic']}</strong>. Это точка управления доступом, ролями и тем,
+              какой сложности операционный контур сейчас открыт для команды.
             </p>
 
             <div className={styles.planGrid}>
@@ -413,7 +413,7 @@ export default function AdminPage() {
                     {isCurrent ? (
                       <div className={styles.planCurrentBadge}>
                         <CheckCircle2 size={13} />
-                        РўРµРєСѓС‰РёР№ СЂРµР¶РёРј
+                        Текущий режим
                       </div>
                     ) : (
                       <Button
@@ -422,7 +422,7 @@ export default function AdminPage() {
                         disabled={!isOwner || upgradeMode.isPending}
                         onClick={() => upgradeMode.mutate(mode.key)}
                       >
-                        РџРµСЂРµРєР»СЋС‡РёС‚СЊ
+                        Переключить
                       </Button>
                     )}
                   </div>

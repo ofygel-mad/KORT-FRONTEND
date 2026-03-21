@@ -34,10 +34,10 @@ interface Props {
 }
 
 const SECTIONS: { id: ChapanSection; label: string; icon: typeof LayoutDashboard }[] = [
-  { id: 'overview', label: 'Панорама', icon: LayoutDashboard },
   { id: 'requests', label: 'Заявки', icon: Inbox },
   { id: 'orders', label: 'Заказы', icon: ShoppingBag },
   { id: 'production', label: 'Производство', icon: Factory },
+  { id: 'overview', label: 'Сводка', icon: LayoutDashboard },
   { id: 'settings', label: 'Настройки', icon: Settings },
 ];
 
@@ -75,49 +75,31 @@ export function ChapanSPA({ tileId }: Props) {
 
   return (
     <div className={s.root} data-tile-id={tileId}>
-      <section className={s.hero}>
-        <div className={s.heroHeader}>
-          <div className={s.identity}>
-            <span className={s.iconWrap}><Factory size={18} /></span>
-            <h1 className={s.title}>Рабочее пространство цеха</h1>
-          </div>
+      <div className={s.topBar}>
+        <div className={s.identity}>
+          <span className={s.iconWrap}><Factory size={16} /></span>
+          <h1 className={s.title}>{profile.displayName}</h1>
+          {stats.blockedCount > 0 && (
+            <span className={s.alertBadge}>{stats.blockedCount} блок.</span>
+          )}
+        </div>
 
-          <div className={s.actionRow}>
-            {profile.publicIntakeEnabled && (
-              <button
-                className={s.secondaryBtn}
-                onClick={() => window.open('/workzone/request', '_blank', 'noopener,noreferrer')}
-              >
-                <ExternalLink size={14} />
-                Форма заявки
-              </button>
-            )}
-            <button className={s.primaryBtn} onClick={() => ui.openCreateModal()}>
-              <Plus size={14} />
-              Новый заказ
+        <div className={s.actionRow}>
+          {profile.publicIntakeEnabled && (
+            <button
+              className={s.secondaryBtn}
+              onClick={() => window.open('/workzone/request', '_blank', 'noopener,noreferrer')}
+            >
+              <ExternalLink size={14} />
+              Форма заявки
             </button>
-          </div>
-        </div>
-
-        <div className={s.metricGrid}>
-          <button className={s.metricCard} onClick={() => ui.setSection('orders')}>
-            <strong>{stats.activeCount}</strong>
-            <span>активных заказов</span>
-          </button>
-          <button className={s.metricCard} onClick={() => ui.setSection('production')}>
-            <strong>{stats.taskCount}</strong>
-            <span>задач в работе</span>
-          </button>
-          <button className={s.metricCard} onClick={() => ui.setSection('production')}>
-            <strong>{stats.blockedCount}</strong>
-            <span>блокировок</span>
-          </button>
-          <button className={s.metricCard} onClick={() => ui.setSection('requests')}>
-            <strong>{stats.newRequests}</strong>
-            <span>новых заявок</span>
+          )}
+          <button className={s.primaryBtn} onClick={() => ui.openCreateModal()}>
+            <Plus size={14} />
+            Новый заказ
           </button>
         </div>
-      </section>
+      </div>
 
       <nav className={s.nav}>
         {SECTIONS.map((section) => (

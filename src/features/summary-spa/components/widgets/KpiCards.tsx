@@ -1,6 +1,6 @@
 /**
  * features/summary-spa/components/widgets/KpiCards.tsx
- * Top row of metric cards вЂ” revenue, leads, tasks, funnel.
+ * Top row of metric cards — revenue, leads, tasks, funnel.
  */
 import { TrendingUp, TrendingDown, Users, CheckSquare, Briefcase } from 'lucide-react';
 import { useSummaryStore } from '../../model/summary.store';
@@ -23,23 +23,23 @@ function delta(curr: number, prev: number): { pct: number; positive: boolean } |
 }
 
 function fmtMoney(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'Рњ в‚ё';
-  if (n >= 1_000) return Math.round(n / 1_000) + 'Рє в‚ё';
-  return n + ' в‚ё';
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'М ₸';
+  if (n >= 1_000) return Math.round(n / 1_000) + 'к ₸';
+  return n + ' ₸';
 }
 
 export function KpiCards() {
   const { dealsSnap, leadsSnap, tasksSnap, getPeriodAggregates, period } = useSummaryStore();
   const agg = getPeriodAggregates();
 
-  const PERIOD_LABEL = { '7d': '7 РґРЅРµР№', '14d': '14 РґРЅРµР№', '30d': '30 РґРЅРµР№' };
+  const PERIOD_LABEL = { '7d': '7 дней', '14d': '14 дней', '30d': '30 дней' };
   const pLabel = PERIOD_LABEL[period];
 
   const cards = [
     {
       id: 'revenue',
-      title: 'Р’С‹СЂСѓС‡РєР°',
-      subtitle: `Р·Р° ${pLabel}`,
+      title: 'Выручка',
+      subtitle: `за ${pLabel}`,
       value: fmtMoney(agg.wonValue),
       delta: delta(agg.wonValue, agg.prev.wonValue),
       tone: 'positive' as const,
@@ -47,30 +47,30 @@ export function KpiCards() {
     },
     {
       id: 'deals_won',
-      title: 'Р—Р°РєСЂС‹С‚Рѕ СЃРґРµР»РѕРє',
-      subtitle: `Р·Р° ${pLabel}`,
+      title: 'Закрыто сделок',
+      subtitle: `за ${pLabel}`,
       value: String(agg.wonCount),
-      subValue: dealsSnap ? `${dealsSnap.totalActive} Р°РєС‚РёРІРЅС‹С…` : undefined,
+      subValue: dealsSnap ? `${dealsSnap.totalActive} активных` : undefined,
       delta: delta(agg.wonCount, agg.prev.wonCount),
       tone: 'info' as const,
       icon: <Briefcase size={18} />,
     },
     {
       id: 'leads',
-      title: 'РќРѕРІС‹С… Р»РёРґРѕРІ',
-      subtitle: `Р·Р° ${pLabel}`,
+      title: 'Новых лидов',
+      subtitle: `за ${pLabel}`,
       value: String(agg.newLeads),
-      subValue: leadsSnap ? `${leadsSnap.totalLeads} РІСЃРµРіРѕ` : undefined,
+      subValue: leadsSnap ? `${leadsSnap.totalLeads} всего` : undefined,
       delta: delta(agg.newLeads, agg.prev.newLeads),
       tone: 'warning' as const,
       icon: <Users size={18} />,
     },
     {
       id: 'tasks',
-      title: 'Р—Р°РґР°С‡ РІС‹РїРѕР»РЅРµРЅРѕ',
-      subtitle: `Р·Р° ${pLabel}`,
+      title: 'Задач выполнено',
+      subtitle: `за ${pLabel}`,
       value: String(agg.tasksDone),
-      subValue: tasksSnap ? `${tasksSnap.overdueCount} РїСЂРѕСЃСЂРѕС‡РµРЅРѕ` : undefined,
+      subValue: tasksSnap ? `${tasksSnap.overdueCount} просрочено` : undefined,
       delta: delta(agg.tasksDone, agg.prev.tasksDone),
       tone: 'violet' as const,
       icon: <CheckSquare size={18} />,
@@ -80,10 +80,10 @@ export function KpiCards() {
   const pipelineCard = dealsSnap
     ? {
         id: 'pipeline',
-        title: 'Р’РѕСЂРѕРЅРєР°',
-        subtitle: 'РІР·РІРµС€РµРЅРЅР°СЏ СЃСѓРјРјР°',
+        title: 'Воронка',
+        subtitle: 'взвешенная сумма',
         value: fmtMoney(dealsSnap.weightedValue),
-        subValue: `${fmtMoney(dealsSnap.pipelineValue)} РѕР±С‰Р°СЏ`,
+        subValue: `${fmtMoney(dealsSnap.pipelineValue)} общая`,
         tone: 'magenta' as const,
         icon: <TrendingUp size={18} />,
       }

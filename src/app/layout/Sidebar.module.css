@@ -27,6 +27,7 @@
 
 .logo,
 .workspaceActions,
+.navShell,
 .nav,
 .bottom {
   position: relative;
@@ -51,8 +52,16 @@
   letter-spacing: -0.02em;
 }
 
+.navShell {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
 .nav {
   flex: 1;
+  min-height: 0;
   padding: 12px 0 6px;
   display: flex;
   flex-direction: column;
@@ -74,6 +83,104 @@
 
 .nav::-webkit-scrollbar-track {
   background: transparent;
+}
+
+.navFade {
+  position: absolute;
+  left: 0;
+  right: 8px;
+  height: 44px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.navFadeTop {
+  top: 0;
+  background: linear-gradient(180deg, rgba(10, 13, 20, 0.98) 0%, rgba(10, 13, 20, 0.82) 40%, transparent 100%);
+}
+
+.navFadeBottom {
+  bottom: 0;
+  background: linear-gradient(0deg, rgba(10, 13, 20, 0.99) 0%, rgba(10, 13, 20, 0.84) 42%, transparent 100%);
+}
+
+.scrollCue {
+  position: absolute;
+  left: 0;
+  right: 6px;
+  z-index: 3;
+  width: 30px;
+  min-height: 24px;
+  margin-inline: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(231, 198, 159, 0.84);
+  cursor: pointer;
+  transition:
+    color var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease),
+    opacity var(--motion-fast) var(--motion-ease);
+}
+
+.scrollCue::before {
+  content: '';
+  position: absolute;
+  inset: -6px -8px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(171, 120, 68, 0.16) 0%, rgba(171, 120, 68, 0.08) 42%, transparent 74%);
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--motion-ease);
+}
+
+.scrollCue:hover {
+  color: rgba(248, 226, 196, 0.98);
+  transform: translateY(-1px);
+}
+
+.scrollCue:hover::before {
+  opacity: 1;
+}
+
+.scrollCueTop {
+  top: 10px;
+}
+
+.scrollCueBottom {
+  bottom: 10px;
+}
+
+.scrollCueIcon {
+  width: 18px;
+  height: 12px;
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+  animation: scrollCuePulse 1.6s ease-in-out infinite;
+}
+
+.scrollCueGlyph {
+  width: 18px;
+  height: 12px;
+  display: block;
+  overflow: visible;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.44));
+}
+
+.scrollCueGlyph path,
+.scrollCueGlyph polyline {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .navSection {
@@ -429,7 +536,23 @@
 @media (prefers-reduced-motion: reduce) {
   .navItem,
   .userSection,
-  .modeSwitch {
+  .modeSwitch,
+  .scrollCue {
     transition: none;
+  }
+
+  .scrollCueIcon {
+    animation: none;
+  }
+}
+
+@keyframes scrollCuePulse {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+
+  50% {
+    opacity: 1;
   }
 }
