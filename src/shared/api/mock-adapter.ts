@@ -1,4 +1,4 @@
-import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import { AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 import {
   buildConsoleMockSession,
   LOCAL_CONSOLE_ACCESS_TOKEN,
@@ -32,7 +32,6 @@ import {
   MOCK_MEMBERSHIP_REQUESTS,
   MOCK_PIPELINE,
   MOCK_TASKS,
-  resolveMockAuthSessionByEmail,
   type MockAuthSession,
 } from './mock-data';
 
@@ -68,13 +67,29 @@ function parseBody(config: InternalAxiosRequestConfig<any>) {
 }
 
 function withResponse(config: InternalAxiosRequestConfig<any>, data: unknown, status = 200) {
-  config.adapter = async () => ({
-    data,
-    status,
-    statusText: 'OK',
-    headers: {},
-    config,
-  });
+  config.adapter = async () => {
+    const response = {
+      data,
+      status,
+      statusText: status >= 400 ? 'ERROR' : 'OK',
+      headers: {},
+      config,
+    };
+
+    if (status >= 400) {
+      throw new AxiosError(
+        typeof data === 'object' && data && 'message' in (data as AnyRecord)
+          ? String((data as AnyRecord).message)
+          : `Mock request failed with status ${status}`,
+        undefined,
+        config,
+        undefined,
+        response,
+      );
+    }
+
+    return response;
+  };
   return config;
 }
 
@@ -448,9 +463,25 @@ export function installMockAdapter(client: AxiosInstance) {
 
     if (url === '/auth/login' && method === 'post') {
       const email = String(body.email ?? '').trim().toLowerCase();
-      const found = resolveMockAuthSessionByEmail(email);
-      if (!found) return withResponse(config, null);
-      const nextSession = cloneSession(found);
+      const phone = String(body.phone ?? '').trim();
+      const password = String(body.password ?? '');
+      const found = email
+        ? sessions.find((item) => item.user.email.toLowerCase() === email) ?? null
+        : null;
+      const byPhone = !found && phone
+        ? sessions.find((item) => item.user.phone === phone) ?? null
+        : null;
+      const matched = found ?? byPhone;
+      if (!matched) return withResponse(config, null);
+      if (matched.password !== password) {
+        return withResponse(config, {
+          code: 'UNAUTHORIZED',
+          error: 'UNAUTHORIZED',
+          message: 'Неверный пароль.',
+          detail: 'Неверный пароль.',
+        }, 401);
+      }
+      const nextSession = cloneSession(matched);
       updateSession(nextSession);
       const orgs = getMockUserOrgs(nextSession);
       return withResponse(config, { ...toAuthSession(nextSession), orgs });

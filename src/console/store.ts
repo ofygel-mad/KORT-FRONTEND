@@ -22,6 +22,7 @@ type ServiceSessionState = {
   active: boolean;
   activatedAt: string | null;
   snapshot: AuthSnapshot | null;
+  password: string | null;
 };
 
 type ConsoleStore = {
@@ -57,6 +58,7 @@ export const useConsoleStore = create<ConsoleStore>()((set) => ({
     active: false,
     activatedAt: null,
     snapshot: null,
+    password: null,
   },
   open: () => set({ isOpen: true }),
   close: () => set({ isOpen: false }),
@@ -98,6 +100,7 @@ export const useConsoleStore = create<ConsoleStore>()((set) => ({
       active: false,
       activatedAt: null,
       snapshot: null,
+      password: null,
     },
   }),
 }));

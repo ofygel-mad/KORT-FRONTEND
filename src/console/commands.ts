@@ -19,6 +19,7 @@ import {
   captureAuthSnapshot,
   deactivateConsoleAccess,
   getConsolePasswordChangedAt,
+  requestBackendServicePasswordChange,
   requestBackendServiceSession,
   updateConsolePassword,
   verifyConsolePassword,
@@ -559,6 +560,7 @@ export async function executeConsoleCommand(input: string): Promise<ConsoleComma
           active: true,
           activatedAt: new Date().toISOString(),
           snapshot,
+          password,
         });
         await appRouter.navigate('/');
         return {
@@ -581,6 +583,7 @@ export async function executeConsoleCommand(input: string): Promise<ConsoleComma
           active: true,
           activatedAt: new Date().toISOString(),
           snapshot,
+          password,
         });
         await appRouter.navigate('/');
         return {
@@ -623,6 +626,67 @@ export async function executeConsoleCommand(input: string): Promise<ConsoleComma
     }
 
     case 'change': {
+      const [firstArg = '', secondArg = ''] = parsed.args;
+      const currentPasswordOverride = secondArg ? firstArg : '';
+      const requestedPassword = secondArg || firstArg;
+      const currentServiceSession = useConsoleStore.getState().serviceSession;
+
+      if (currentServiceSession.active) {
+        if (!requestedPassword) {
+          return {
+            level: 'error',
+            message: 'Usage: change "new-password" or change "current-password" "new-password"',
+            details: 'Production rotates the backend service password. DEV also refreshes the local fallback password.',
+          };
+        }
+
+        if (requestedPassword.length < 8) {
+          return {
+            level: 'error',
+            message: 'Password must contain at least 8 characters.',
+          };
+        }
+
+        const currentPassword = currentPasswordOverride || currentServiceSession.password || '';
+
+        if (currentPassword) {
+          const backendResult = await requestBackendServicePasswordChange(currentPassword, requestedPassword);
+
+          if (backendResult.type === 'ok') {
+            if (canUseLocalConsoleAccess()) {
+              await updateConsolePassword(requestedPassword);
+            }
+
+            useConsoleStore.getState().setServiceSession({ password: requestedPassword });
+            return {
+              level: 'success',
+              message: 'Service password updated.',
+              details: backendResult.updatedAt
+                ? `updated_at: ${backendResult.updatedAt}`
+                : 'Backend credential rotated successfully.',
+            };
+          }
+
+          if (backendResult.type === 'denied') {
+            return {
+              level: 'error',
+              message: 'Unable to rotate the service password.',
+              details: 'The current password is invalid or the current session does not have owner access.',
+            };
+          }
+        }
+
+        if (!canUseLocalConsoleAccess()) {
+          return {
+            level: 'error',
+            message: 'Backend service password change unavailable.',
+            details: currentPassword
+              ? 'Check VITE_API_BASE_URL, CORS and the /service/password backend route.'
+              : 'Repeat access with the current password or use: change "current-password" "new-password".',
+          };
+        }
+      }
+
       if (!canUseLocalConsoleAccess()) {
         return {
           level: 'error',
