@@ -9,7 +9,9 @@ import { installMockAdapter } from './mock-adapter';
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1';
 
-const IS_MOCK = import.meta.env.DEV && import.meta.env.VITE_MOCK_API === 'true';
+// Mock-режим: работает и в DEV, и в production (если VITE_MOCK_API=true задан в Railway).
+// Это позволяет деплоить фронт без бэкенда, пока Django не поднят отдельно.
+const IS_MOCK = import.meta.env.VITE_MOCK_API === 'true';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
