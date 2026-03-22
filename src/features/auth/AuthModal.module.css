@@ -14,9 +14,6 @@
 
 .panel {
   width: min(1080px, 100%);
-  /* height + max-height обязательно: без height grid-ячейки не получают
-     конкретную высоту и не могут ограничить скроллящиеся flex-дочерние элементы */
-  height: calc(100dvh - 48px);
   max-height: calc(100dvh - 48px);
   display: grid;
   grid-template-columns: minmax(320px, 0.92fr) minmax(0, 1.08fr);
@@ -36,7 +33,6 @@
   background: var(--brand-auth-bg);
   color: var(--text-inverse);
   overflow: hidden;
-  min-height: 0;
 }
 
 .brandSide::before,
@@ -721,9 +717,6 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  /* min-height: 0 критичен: без него grid-cell не ограничивает высоту,
-     и flex-child formViewport с overflow-y: auto не скроллится */
-  min-height: 0;
   background: var(--brand-surface-3);
 }
 
@@ -794,8 +787,6 @@
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  /* Гарантирует, что sticky-кнопка не перекрывает контент при скролле */
-  scroll-padding-bottom: 64px;
 }
 
 .stepContent {
@@ -803,18 +794,6 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-}
-
-/* Кнопка отправки всегда видна — прилипает к низу при скролле */
-.stepContent > .primaryButton {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
-  margin-top: auto;
-  /* box-shadow не поддерживает градиент — используем solid-цвет совпадающий с bg формы */
-  box-shadow:
-    0 -20px 28px 12px var(--bg-surface),
-    var(--shadow-accent);
 }
 
 .stepHeader {

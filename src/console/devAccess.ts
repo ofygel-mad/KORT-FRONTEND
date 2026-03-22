@@ -167,11 +167,8 @@ async function ensurePasswordRecord() {
   return record;
 }
 
-// В production разрешаем локальный доступ через PBKDF2-хэш в localStorage.
-// Это безопасно: пароль хранится только в браузере пользователя.
-// Отключить можно через VITE_CONSOLE_LOCAL_ACCESS=false в env-переменных.
 export function canUseLocalConsoleAccess() {
-  return import.meta.env.VITE_CONSOLE_LOCAL_ACCESS !== 'false';
+  return import.meta.env.DEV;
 }
 
 function buildApiEndpoint(path: string) {

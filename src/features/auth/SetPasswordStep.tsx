@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Eye, EyeOff, KeyRound, ShieldCheck } from 'lucide-react';
-import { apiClient } from '../../shared/api/client';
+import axios from 'axios';
+import { API_BASE_URL } from '../../shared/api/client';
 import { readApiErrorMessage } from '../../shared/api/errors';
 import type { AuthSessionResponse } from '../../shared/api/contracts';
 import styles from './SetPasswordStep.module.css';
@@ -72,14 +73,15 @@ export function SetPasswordStep({ tempToken, userName, onSuccess }: Props) {
 
     setLoading(true);
     try {
-      // Используем apiClient (не голый axios) — чтобы mock-адаптер перехватил запрос.
-      // temp_token передаём как Authorization, но он не должен заменяться интерсептором,
-      // поэтому явно передаём заголовок в config и блокируем автоматический inject.
-      const { data } = await apiClient.post<AuthSessionResponse>(
-        `/auth/set-password/`,
+      // We call axios directly with the temp_token in Authorization.
+      // We intentionally bypass the shared api client's auth interceptor
+      // (which would inject the store access token instead).
+      const { data } = await axios.post<AuthSessionResponse>(
+        `${API_BASE_URL}/auth/set-password/`,
         { new_password: password, confirm_password: confirm },
         {
           headers: {
+            'Content-Type': 'application/json',
             Authorization: `Bearer ${tempToken}`,
           },
         },
