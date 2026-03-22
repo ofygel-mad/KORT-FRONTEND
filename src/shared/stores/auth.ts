@@ -17,6 +17,12 @@ export type User = {
   phone?: string;
   avatar_url?: string | null;
   status?: string;
+  /** Признак первичного владельца (прошедшего регистрацию компании) */
+  is_owner?: boolean;
+  /** Права доступа сотрудника — строки из EmployeePermission */
+  employee_permissions?: string[];
+  /** Статус аккаунта сотрудника */
+  account_status?: string;
 };
 
 export type Org = {

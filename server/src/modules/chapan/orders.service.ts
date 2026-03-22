@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { NotFoundError, ValidationError } from '../../lib/errors.js';
+import { syncChapanPayment } from '../accounting/accounting.sync.js';
 
 type CreateOrderInput = {
   clientId?: string;
@@ -266,6 +267,15 @@ export async function confirm(orgId: string, id: string, authorId: string, autho
       },
     });
   });
+
+  // After confirmation: async warehouse BOM check (non-blocking)
+  // If BOM is set up, this will auto-reserve materials or block tasks on shortage
+  try {
+    const { checkOrderBOM } = await import('../warehouse/warehouse.service.js');
+    await checkOrderBOM(orgId, id, true);
+  } catch {
+    // Warehouse module may not have BOM set up yet — not a fatal error
+  }
 }
 
 // ── Update order status ─────────────────────────────────
@@ -297,6 +307,33 @@ export async function updateStatus(orgId: string, id: string, status: string, au
       },
     });
   });
+
+  // Sync accounting when order completes
+  if (status === 'completed') {
+    const { syncChapanPayment: syncCompleted } = await import('../accounting/accounting.sync.js');
+    const freshOrder = await prisma.chapanOrder.findFirst({ where: { id, orgId } });
+    if (freshOrder && freshOrder.paidAmount > 0) {
+      await syncCompleted({
+        orgId,
+        orderId: id,
+        orderNumber: freshOrder.orderNumber,
+        amount: freshOrder.paidAmount,
+        method: 'mixed',
+        clientName: freshOrder.clientName,
+        authorName,
+      }).catch(() => {});
+    }
+  }
+
+  // Release warehouse reservations on terminal statuses
+  if (status === 'cancelled' || status === 'completed') {
+    try {
+      const { releaseOrderReservations } = await import('../warehouse/warehouse.service.js');
+      await releaseOrderReservations(orgId, id);
+    } catch {
+      // Warehouse module may not have reservations — not fatal
+    }
+  }
 }
 
 // ── Add payment ─────────────────────────────────────────
@@ -337,6 +374,17 @@ export async function addPayment(orgId: string, orderId: string, authorId: strin
       },
     }),
   ]);
+
+  // ── Sync accounting ───────────────────────────────────
+  await syncChapanPayment({
+    orgId,
+    orderId,
+    orderNumber: order.orderNumber,
+    amount: data.amount,
+    method: data.method,
+    clientName: order.clientName,
+    authorName,
+  }).catch(() => {}); // non-blocking: don't fail payment if accounting sync errors
 
   return payment;
 }

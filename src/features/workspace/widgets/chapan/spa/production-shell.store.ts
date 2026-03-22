@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type ProductionWorkspaceId = 'hub' | 'chapan' | 'template';
+export type ProductionWorkspaceId = 'hub' | 'chapan' | 'template' | 'workspace';
 export type ProductionTemplateSection = 'overview' | 'operations' | 'settings';
 
 interface ProductionShellRecord {
@@ -11,6 +11,8 @@ interface ProductionShellRecord {
   templateName: string;
   templateDescriptor: string;
   templateOrderPrefix: string;
+  /** ID of a created workshop — populated after successful template submission */
+  workshopId?: string;
 }
 
 interface PersistedProductionShellState {
@@ -25,6 +27,7 @@ interface ProductionShellState {
   setTemplateName: (tileId: string, name: string) => void;
   setTemplateDescriptor: (tileId: string, descriptor: string) => void;
   setTemplateOrderPrefix: (tileId: string, prefix: string) => void;
+  setWorkshopId: (tileId: string, workshopId: string) => void;
   resetTemplate: (tileId: string) => void;
   clearTile: (tileId: string) => void;
 }
@@ -38,7 +41,7 @@ const DEFAULT_RECORD: ProductionShellRecord = {
 };
 
 function isWorkspaceId(value: unknown): value is ProductionWorkspaceId {
-  return value === 'hub' || value === 'chapan' || value === 'template';
+  return value === 'hub' || value === 'chapan' || value === 'template' || value === 'workspace';
 }
 
 function isTemplateSection(value: unknown): value is ProductionTemplateSection {
@@ -105,6 +108,9 @@ export const useProductionShellStore = create<ProductionShellState>()(
       setTemplateOrderPrefix: (tileId, templateOrderPrefix) => set((state) => ({
         tiles: patchTileRecord(state.tiles, tileId, { templateOrderPrefix }),
       })),
+      setWorkshopId: (tileId, workshopId) => set((state) => ({
+        tiles: patchTileRecord(state.tiles, tileId, { workshopId }),
+      })),
       resetTemplate: (tileId) => set((state) => ({
         tiles: patchTileRecord(state.tiles, tileId, {
           templateSection: DEFAULT_RECORD.templateSection,
@@ -149,6 +155,7 @@ export function useTileProductionShell(tileId: string) {
   const setTemplateName = useProductionShellStore((state) => state.setTemplateName);
   const setTemplateDescriptor = useProductionShellStore((state) => state.setTemplateDescriptor);
   const setTemplateOrderPrefix = useProductionShellStore((state) => state.setTemplateOrderPrefix);
+  const setWorkshopId = useProductionShellStore((state) => state.setWorkshopId);
   const resetTemplate = useProductionShellStore((state) => state.resetTemplate);
 
   useEffect(() => {
@@ -163,6 +170,7 @@ export function useTileProductionShell(tileId: string) {
     setTemplateName: (name: string) => setTemplateName(tileId, name),
     setTemplateDescriptor: (descriptor: string) => setTemplateDescriptor(tileId, descriptor),
     setTemplateOrderPrefix: (prefix: string) => setTemplateOrderPrefix(tileId, prefix),
+    setWorkshopId: (id: string) => setWorkshopId(tileId, id),
     resetTemplate: () => resetTemplate(tileId),
   };
 }

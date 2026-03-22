@@ -6,12 +6,18 @@ export function useRole() {
   const membershipStatus = useAuthStore((state) => state.membership.status);
   const membershipRole = useAuthStore((state) => state.membership.role);
   const fallbackRole = useAuthStore((state) => state.role) as Role;
-  const role = (membershipStatus === 'active' ? (membershipRole ?? fallbackRole) : 'viewer') as Role;
+  const userIsOwner = useAuthStore((state) => state.user?.is_owner ?? false);
 
-  const isOwner = role === 'owner';
-  const isAdmin = role === 'owner' || role === 'admin';
-  const isManager = isAdmin || role === 'manager';
-  const isViewer = role === 'viewer';
+  // Если бэкенд вернул флаг is_owner на User — гарантируем роль owner
+  // независимо от текущего membership.role (защита от рассинхронизации)
+  const resolvedRole = userIsOwner
+    ? 'owner'
+    : ((membershipStatus === 'active' ? (membershipRole ?? fallbackRole) : 'viewer') as Role);
 
-  return { role, isOwner, isAdmin, isManager, isViewer };
+  const isOwner = resolvedRole === 'owner';
+  const isAdmin = resolvedRole === 'owner' || resolvedRole === 'admin';
+  const isManager = isAdmin || resolvedRole === 'manager';
+  const isViewer = resolvedRole === 'viewer';
+
+  return { role: resolvedRole, isOwner, isAdmin, isManager, isViewer };
 }

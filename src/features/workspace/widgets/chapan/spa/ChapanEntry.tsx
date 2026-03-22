@@ -1,97 +1,77 @@
 /**
  * ChapanEntry — entry point for the «Производство» tile.
  *
- * Flow:
- *   hub  →  [ Чапан / Новый шаблон ]
- *              ↓                ↓
- *           ChapanSPA     ProductionTemplateSPA
- *           (production   (template editor)
- *            kanban)
- *
- * Manager-side sections (Заявки, Заказы, Настройки) have been
- * moved to the separate «Заявки» tile (RequestsSPA).
- * All authenticated roles see the production kanban here.
+ * Routes:
+ *   hub       → ProductionHub  (list of workspaces)
+ *   chapan    → WorkshopSPA via ChapanAdapter
+ *   template  → ProductionTemplateSPA (3-step wizard)
+ *   workspace → WorkshopSPA via WorkshopAdapter (newly created workshops)
  */
 import { Lock } from 'lucide-react';
-import { ChapanSPA } from './ChapanSPA';
-import { WorkshopConsole } from '../../../../chapan-spa/components/workshop/WorkshopConsole';
-import { useChapanStore } from '../../../../chapan-spa/model/chapan.store';
-import {
-  canSeeWorkshopConsole,
-  useResolvedChapanRole,
-} from '../../../../chapan-spa/model/rbac.store';
+import { WorkshopSPA } from '@/features/production-spa/WorkshopSPA';
+import { useChapanAdapter } from '@/features/production-spa/adapter/chapan.adapter';
+import { useWorkshopAdapter } from '@/features/production-spa/adapter/workshop.adapter';
 import { ProductionHub } from './ProductionHub';
 import { ProductionTemplateSPA } from './ProductionTemplateSPA';
 import { ProductionWorkspaceShell } from './ProductionWorkspaceShell';
 import { useTileProductionShell } from './production-shell.store';
+import { canSeeWorkshopConsole, useResolvedChapanRole } from '../../../../chapan-spa/model/rbac.store';
+import { WorkshopConsole } from '../../../../chapan-spa/components/workshop/WorkshopConsole';
 import s from './ChapanEntry.module.css';
 
 export function ChapanEntry({ tileId }: { tileId: string }) {
   const role = useResolvedChapanRole();
-  const { activeWorkspace, goHome, templateName } = useTileProductionShell(tileId);
-  const profileName = useChapanStore((state) => state.profile.displayName);
-  const templateTitle = templateName.trim() || 'Новое производство';
+  const { activeWorkspace, goHome, workshopId } = useTileProductionShell(tileId);
 
-  /* ── Hub (card grid: Чапан + Шаблон) ─────────────────── */
+  const chapanAdapter = useChapanAdapter();
+  const workshopAdapter = useWorkshopAdapter(workshopId ?? '');
+
+  /* ── Hub ───────────────────────────────────────────────── */
   if (activeWorkspace === 'hub') {
     return <ProductionHub tileId={tileId} />;
   }
 
-  /* ── Template workspace ───────────────────────────────── */
+  /* ── Template wizard ───────────────────────────────────── */
   if (activeWorkspace === 'template') {
     return (
-      <ProductionWorkspaceShell
-        title={templateTitle}
-        onBack={goHome}
-        tone="template"
-      >
+      <ProductionWorkspaceShell title="Новое производство" onBack={goHome} tone="template">
         <ProductionTemplateSPA tileId={tileId} onBack={goHome} />
       </ProductionWorkspaceShell>
     );
   }
 
-  /* ── Chapan production workspace ─────────────────────── */
-  // workshop_lead / worker → personalised WorkshopConsole
-  if (canSeeWorkshopConsole(role)) {
+  /* ── Newly created workshop ────────────────────────────── */
+  if (activeWorkspace === 'workspace' && workshopId) {
     return (
-      <ProductionWorkspaceShell
-        title={profileName}
-        onBack={goHome}
-        tone="live"
-      >
-        <WorkshopConsole title={profileName} onBack={goHome} />
-      </ProductionWorkspaceShell>
+      <WorkshopSPA adapter={workshopAdapter} onBack={goHome} />
     );
   }
 
-  // manager / any other role → production kanban (ChapanSPA, production-only)
-  // Managers use the «Заявки» tile for order management.
-  if (role !== 'viewer') {
-    return (
-      <ProductionWorkspaceShell
-        title={profileName}
-        onBack={goHome}
-        tone="live"
-      >
-        <ChapanSPA tileId={tileId} title={profileName} onBack={goHome} />
-      </ProductionWorkspaceShell>
-    );
+  /* ── Chapan production workspace ──────────────────────── */
+  if (activeWorkspace === 'chapan') {
+    // workshop_lead / worker → personalised WorkshopConsole (Chapan-specific view)
+    if (canSeeWorkshopConsole(role)) {
+      return (
+        <ProductionWorkspaceShell title={chapanAdapter.profile.name} onBack={goHome} tone="live">
+          <WorkshopConsole title={chapanAdapter.profile.name} onBack={goHome} />
+        </ProductionWorkspaceShell>
+      );
+    }
+
+    if (role !== 'viewer') {
+      // manager → universal WorkshopSPA with ChapanAdapter
+      return <WorkshopSPA adapter={chapanAdapter} onBack={goHome} />;
+    }
   }
 
-  /* ── Access denied ────────────────────────────────────── */
+  /* ── Access denied ─────────────────────────────────────── */
   return (
-    <ProductionWorkspaceShell
-      title={profileName}
-      onBack={goHome}
-      tone="locked"
-    >
+    <ProductionWorkspaceShell title="Производство" onBack={goHome} tone="locked">
       <div className={s.denied}>
-        <div className={s.iconWrap}>
-          <Lock size={20} />
-        </div>
-        <div className={s.title}>Доступ к производственному пространству ограничен</div>
+        <div className={s.iconWrap}><Lock size={20} /></div>
+        <div className={s.title}>Доступ ограничен</div>
         <div className={s.text}>
-          Обратитесь к администратору компании и назначьте роль внутри выбранного производства.
+          Обратитесь к администратору и назначьте роль внутри производственного пространства.
         </div>
       </div>
     </ProductionWorkspaceShell>

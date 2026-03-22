@@ -16,6 +16,7 @@ async function orgScopePlugin(fastify: FastifyInstance) {
 
   /**
    * Resolves the user's active organization from their membership.
+   * Blocks dismissed employees from accessing protected routes.
    * Must run AFTER authenticate.
    */
   fastify.decorate('resolveOrg', async (request: FastifyRequest, _reply: FastifyReply) => {
@@ -23,7 +24,10 @@ async function orgScopePlugin(fastify: FastifyInstance) {
       throw new ForbiddenError('Authentication required before org resolution');
     }
 
-    const xOrgId = typeof request.headers['x-org-id'] === 'string' ? request.headers['x-org-id'] : null;
+    const xOrgId =
+      typeof request.headers['x-org-id'] === 'string'
+        ? request.headers['x-org-id']
+        : null;
 
     if (xOrgId) {
       const requested = await prisma.membership.findUnique({
@@ -31,7 +35,11 @@ async function orgScopePlugin(fastify: FastifyInstance) {
         include: { user: true },
       });
 
-      if (requested && requested.status === 'active') {
+      if (
+        requested &&
+        requested.status === 'active' &&
+        requested.employeeAccountStatus !== 'dismissed'
+      ) {
         request.orgId = requested.orgId;
         request.orgRole = requested.role;
         request.userFullName = requested.user.fullName;
@@ -40,7 +48,12 @@ async function orgScopePlugin(fastify: FastifyInstance) {
     }
 
     const membership = await prisma.membership.findFirst({
-      where: { userId: request.userId, status: 'active' },
+      where: {
+        userId: request.userId,
+        status: 'active',
+        // Dismissed employees cannot access any org-scoped route
+        NOT: { employeeAccountStatus: 'dismissed' },
+      },
       include: { user: true },
       orderBy: { joinedAt: 'desc' },
     });
@@ -72,7 +85,9 @@ async function orgScopePlugin(fastify: FastifyInstance) {
 declare module 'fastify' {
   interface FastifyInstance {
     resolveOrg: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
-    requireRole: (...roles: string[]) => (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+    requireRole: (
+      ...roles: string[]
+    ) => (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
   }
 }
 

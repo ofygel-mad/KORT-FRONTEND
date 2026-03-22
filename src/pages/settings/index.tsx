@@ -17,14 +17,7 @@ import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { api } from '../../shared/api/client';
-import type {
-  AuthSessionResponse,
-  CompanyDirectoryItem,
-  InviteRecord,
-  MembershipRequestRecord,
-  MembershipRequestSubmissionResponse,
-  TeamMemberResponse,
-} from '../../shared/api/contracts';
+import type { TeamMemberResponse } from '../../shared/api/contracts';
 import { useCompanyAccess } from '../../shared/hooks/useCompanyAccess';
 import { useCapabilities } from '../../shared/hooks/useCapabilities';
 import { useRole } from '../../shared/hooks/useRole';
@@ -40,11 +33,15 @@ import { CompanyAccessGate } from '../../shared/ui/CompanyAccessGate';
 import { EmptyState } from '../../shared/ui/EmptyState';
 import { PageHeader } from '../../shared/ui/PageHeader';
 import { Skeleton } from '../../shared/ui/Skeleton';
+import { EmployeePanel } from '../../features/auth/EmployeePanel';
 import s from './Settings.module.css';
 
 interface OrgData {
   id: string;
   name: string;
+  slug?: string;
+  mode?: string;
+  // Extended profile fields — all optional, null from server = not set
   legal_name?: string;
   bin?: string;
   iin?: string;
@@ -60,7 +57,8 @@ interface OrgData {
   bank_bik?: string;
   bank_account?: string;
   currency: string;
-  industry: string;
+  industry?: string;
+  onboarding_completed?: boolean;
 }
 
 type SectionKey =
@@ -273,70 +271,16 @@ function OrgSection() {
 }
 
 function CompanyAccessSection() {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const access = useCompanyAccess();
-  const setAuth = useAuthStore((state) => state.setAuth);
-  const setMembership = useAuthStore((state) => state.setMembership);
-  const [search, setSearch] = useState('');
-  const [inviteLink, setInviteLink] = useState('');
-
-  const companiesQuery = useQuery<{ results: CompanyDirectoryItem[] }>({
-    queryKey: ['companies-search', search],
-    enabled: search.trim().length >= 2,
-    queryFn: () => api.get('/companies/search/', { q: search }),
-  });
-
-  const requestsQuery = useQuery<{ results: MembershipRequestRecord[] }>({
-    queryKey: ['membership-requests', 'me'],
-    enabled: access.isAuthenticated,
-    queryFn: () => api.get('/membership-requests/me/'),
-  });
-
-  const requestMutation = useMutation({
-    mutationFn: (companyId: string) => api.post<MembershipRequestSubmissionResponse>('/membership-requests/', { company_id: companyId }),
-    onSuccess: (payload) => {
-      setMembership(payload.membership);
-      queryClient.invalidateQueries({ queryKey: ['membership-requests', 'me'] });
-      toast.success('Заявка отправлена');
-    },
-  });
-
-  const inviteMutation = useMutation({
-    mutationFn: async () => {
-      const token = extractInviteToken(inviteLink);
-      if (!token) throw new Error('Вставьте ссылку или токен');
-      const invite = await api.get<InviteRecord | null>(`/invites/${encodeURIComponent(token)}/`);
-      if (!invite) throw new Error('Ссылка устарела или не найдена');
-      const session = await api.post<AuthSessionResponse | null>(`/invites/${encodeURIComponent(token)}/accept/`);
-      if (!session) throw new Error('Не удалось активировать ссылку');
-      return session;
-    },
-    onSuccess: (session) => {
-      setAuth(session.user, session.org, session.access, session.refresh, session.capabilities, session.role, {
-        membership: session.membership,
-        inviteContext: null,
-      });
-      setInviteLink('');
-      queryClient.invalidateQueries({ queryKey: ['membership-requests', 'me'] });
-      toast.success('Компания подключена');
-    },
-    onError: (cause: any) => {
-      toast.error(cause?.message ?? 'Не удалось применить ссылку');
-    },
-  });
-
-  const latestRequest = requestsQuery.data?.results?.find((item) => item.status === 'pending')
-    ?? requestsQuery.data?.results?.[0]
-    ?? null;
 
   return (
     <>
+      {/* ── Статус доступа ── */}
       <div className={s.section}>
         <div className={s.sectionHeader}>
           <div>
             <div className={s.sectionTitle}>Статус доступа</div>
-            <div className={s.sectionSubtitle}>Компания, роль и текущее состояние membership</div>
+            <div className={s.sectionSubtitle}>Компания, роль и текущее состояние участия</div>
           </div>
           <Badge bg="var(--bg-surface-inset)" color="var(--text-secondary)">
             {ACCESS_LABELS[access.state] ?? access.state}
@@ -347,12 +291,12 @@ function CompanyAccessSection() {
             <div className={s.adminGateCard}>
               <Building2 size={18} />
               <div>
-                <div className={s.adminGateTitle}>Компания уже активна</div>
+                <div className={s.adminGateTitle}>Компания активна</div>
                 <div className={s.adminGateText}>
-                  Вы управляете компанией «{access.companyName ?? 'Текущая организация'}». Ссылки и заявки вынесены в раздел команды.
+                  Вы управляете компанией «{access.companyName ?? 'Текущая организация'}».
+                  Сотрудники добавляются в разделе ниже.
                 </div>
               </div>
-              <Button size="sm" onClick={() => navigate('/admin/team')}>Команда</Button>
             </div>
           ) : (
             <CompanyAccessGate compact />
@@ -364,104 +308,34 @@ function CompanyAccessSection() {
               <div className={s.apiKeyField}>{access.companyName ?? 'Не выбрана'}</div>
             </div>
             <div className={s.field}>
-              <label className={s.fieldLabel}>Последняя заявка</label>
-              <div className={s.apiKeyField}>
-                {latestRequest ? `${latestRequest.company_name} • ${latestRequest.status}` : 'Заявок нет'}
-              </div>
+              <label className={s.fieldLabel}>Роль</label>
+              <div className={s.apiKeyField}>{access.role ?? 'viewer'}</div>
             </div>
           </div>
         </div>
       </div>
 
-      {!access.isAdmin && !access.hasCompanyAccess && (
-        <>
-          <div className={s.section}>
-            <div className={s.sectionHeader}>
-              <div>
-                <div className={s.sectionTitle}>Найти компанию</div>
-                <div className={s.sectionSubtitle}>Введите название компании и отправьте заявку на подключение</div>
-              </div>
-            </div>
-            <div className={s.sectionBody}>
-              <div className={s.fieldFull}>
-                <label className={s.fieldLabel}>Название компании</label>
-                <input
-                  className="kort-input"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Demo Company"
-                />
-                <div className={s.fieldHint}>Поиск запускается после двух символов.</div>
-              </div>
-
-              {search.trim().length < 2 && (
-                <EmptyState
-                  icon={<Building2 size={18} />}
-                  title="Начните поиск"
-                  description="Введите название компании, чтобы отправить заявку."
-                />
-              )}
-
-              {search.trim().length >= 2 && companiesQuery.isLoading && <Skeleton height={120} />}
-
-              {companiesQuery.data?.results?.length ? (
-                <div className={s.teamTableWrap}>
-                  <table className={s.teamTable}>
-                    <tbody>
-                      {companiesQuery.data.results.map((company) => (
-                        <tr key={company.id}>
-                          <td>
-                            <div className={s.memberCell}>
-                              <div className={s.memberAvatar}>{company.name.charAt(0)}</div>
-                              <div>
-                                <div className={s.memberName}>{company.name}</div>
-                                <div className={s.memberEmail}>{company.industry ?? 'Компания в каталоге'}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td>
-                            <Button size="sm" loading={requestMutation.isPending} onClick={() => requestMutation.mutate(company.id)}>
-                              Подать заявку
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : null}
-            </div>
-          </div>
-
-          <div className={s.section}>
-            <div className={s.sectionHeader}>
-              <div>
-                <div className={s.sectionTitle}>Реферальная ссылка</div>
-                <div className={s.sectionSubtitle}>По ссылке подтверждение администратора не требуется</div>
-              </div>
-            </div>
-            <div className={s.sectionBody}>
-              <div className={s.fieldFull}>
-                <label className={s.fieldLabel}>Ссылка или токен</label>
-                <div className={s.apiKeyRow}>
-                  <input
-                    className={`kort-input ${s.apiKeyInput}`}
-                    value={inviteLink}
-                    onChange={(event) => setInviteLink(event.target.value)}
-                    placeholder="https://.../auth/accept-invite?token=..."
-                  />
-                  <Button size="sm" loading={inviteMutation.isPending} onClick={() => inviteMutation.mutate()}>
-                    Подключить
-                  </Button>
-                </div>
+      {/* ── Управление сотрудниками (только для admin/owner) ── */}
+      {access.isAdmin && (
+        <div className={s.section}>
+          <div className={s.sectionHeader}>
+            <div>
+              <div className={s.sectionTitle}>Сотрудники</div>
+              <div className={s.sectionSubtitle}>
+                Добавление, права доступа и управление аккаунтами. Сотрудники входят через
+                номер телефона при первом визите.
               </div>
             </div>
           </div>
-        </>
+          <div className={s.sectionBody}>
+            <EmployeePanel />
+          </div>
+        </div>
       )}
     </>
   );
 }
+
 
 function TeamSection() {
   const queryClient = useQueryClient();

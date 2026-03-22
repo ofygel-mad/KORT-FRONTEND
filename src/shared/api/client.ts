@@ -52,6 +52,7 @@ function isSessionEstablishingRequest(url?: string) {
 
   return normalized.includes('/auth/login')
     || normalized.includes('/auth/register/')
+    || normalized.includes('/auth/set-password')
     || (normalized.includes('/invites/') && normalized.includes('/accept'));
 }
 

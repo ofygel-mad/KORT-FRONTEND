@@ -22,7 +22,7 @@ export default function RegisterPage() {
     <AuthRouteLayout>
       <AuthModal
         open
-        initialStep="choose-type"
+        initialStep="company"
         onClose={() => navigate('/', { replace: true })}
         onAuthSuccess={() => {
           unlock();

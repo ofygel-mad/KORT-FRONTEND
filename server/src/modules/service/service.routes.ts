@@ -6,18 +6,9 @@ import { config } from '../../config.js';
 import { UnauthorizedError } from '../../lib/errors.js';
 import { signAccessToken, signRefreshToken } from '../../lib/jwt.js';
 import { prisma } from '../../lib/prisma.js';
-
-const OWNER_CAPS = [
-  'customers:read', 'customers:write',
-  'deals:read', 'deals:write',
-  'tasks:read', 'tasks:write',
-  'reports.basic', 'customers.import',
-  'billing.manage', 'integrations.manage',
-  'audit.read', 'team.manage', 'automations.manage',
-];
+import { buildCapabilities } from '../auth/auth.service.js';
 
 function safeCompare(provided: string, expected: string): boolean {
-  // Constant-length buffers prevent timing attacks on length differences
   const pa = Buffer.allocUnsafe(128);
   const pb = Buffer.allocUnsafe(128);
   pa.fill(0);
@@ -27,27 +18,19 @@ function safeCompare(provided: string, expected: string): boolean {
   return timingSafeEqual(pa, pb) && provided === expected;
 }
 
-const accessSchema = z.object({
-  password: z.string().min(1),
-});
+const accessSchema = z.object({ password: z.string().min(1) });
 
 export async function serviceRoutes(app: FastifyInstance) {
-  // Service console is disabled in production
-  if (process.env.NODE_ENV === 'production') {
-    return;
-  }
+  if (process.env.NODE_ENV === 'production') return;
 
   // POST /api/v1/service/access
-  // Verifies the service password and returns a real owner session
   app.post('/access', async (request, reply) => {
     const body = accessSchema.parse(request.body);
-
     const expected = config.CONSOLE_SERVICE_PASSWORD;
     if (!expected || !safeCompare(body.password, expected)) {
       throw new UnauthorizedError('Access denied.');
     }
 
-    // Find first active owner in the database
     const membership = await prisma.membership.findFirst({
       where: { role: 'owner', status: 'active' },
       include: { user: true, org: true },
@@ -60,7 +43,7 @@ export async function serviceRoutes(app: FastifyInstance) {
 
     const { user, org } = membership;
     const jti = nanoid();
-    const access = signAccessToken({ sub: user.id, email: user.email });
+    const access = signAccessToken({ sub: user.id, email: user.email ?? '' });
     const refresh = signRefreshToken({ sub: user.id, jti });
 
     await prisma.refreshToken.create({
@@ -72,6 +55,8 @@ export async function serviceRoutes(app: FastifyInstance) {
       },
     });
 
+    const caps = buildCapabilities('owner', true, []);
+
     return reply.send({
       access,
       refresh,
@@ -82,6 +67,9 @@ export async function serviceRoutes(app: FastifyInstance) {
         phone: user.phone,
         avatar_url: user.avatarUrl,
         status: user.status,
+        is_owner: true,
+        employee_permissions: [],
+        account_status: 'active',
       },
       org: {
         id: org.id,
@@ -92,7 +80,7 @@ export async function serviceRoutes(app: FastifyInstance) {
         onboarding_completed: org.onboardingCompleted,
       },
       role: 'owner',
-      capabilities: OWNER_CAPS,
+      capabilities: caps,
       membership: {
         companyId: org.id,
         companyName: org.name,

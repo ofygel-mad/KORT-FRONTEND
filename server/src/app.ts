@@ -22,8 +22,12 @@ import { chapanOrdersRoutes } from './modules/chapan/orders.routes.js';
 import { chapanProductionRoutes } from './modules/chapan/production.routes.js';
 import { chapanRequestsRoutes } from './modules/chapan/requests.routes.js';
 import { chapanSettingsRoutes } from './modules/chapan/settings.routes.js';
+import { employeesRoutes } from './modules/employees/employees.routes.js';
 import { frontendCompatRoutes } from './modules/frontend-compat/frontend-compat.routes.js';
 import { serviceRoutes } from './modules/service/service.routes.js';
+import { warehouseRoutes } from './modules/warehouse/warehouse.routes.js';
+import { accountingRoutes } from './modules/accounting/accounting.routes.js';
+import { registerAccountingSync } from './modules/accounting/accounting.sync.js';
 
 export async function buildApp() {
   const isProd = process.env.NODE_ENV === 'production';
@@ -95,6 +99,7 @@ export async function buildApp() {
   await app.register(usersRoutes, { prefix: '/api/v1/users' });
   await app.register(orgsRoutes, { prefix: '/api/v1' });
   await app.register(membershipsRoutes, { prefix: '/api/v1' });
+  await app.register(employeesRoutes, { prefix: '/api/v1/company' });
   await app.register(customersRoutes, { prefix: '/api/v1/customers' });
   await app.register(leadsRoutes, { prefix: '/api/v1/leads' });
   await app.register(dealsRoutes, { prefix: '/api/v1/deals' });
@@ -105,8 +110,14 @@ export async function buildApp() {
   await app.register(chapanSettingsRoutes, { prefix: '/api/v1/chapan/settings' });
   await app.register(frontendCompatRoutes, { prefix: '/api/v1' });
   await app.register(serviceRoutes, { prefix: '/api/v1/service' });
+  await app.register(warehouseRoutes, { prefix: '/api/v1/warehouse' });
 
   // ── Health check ────────────────────────────────────────
+  await app.register(accountingRoutes, { prefix: '/api/v1/accounting' });
+
+  // ── Accounting event sync ───────────────────────────────
+  registerAccountingSync();
+
   app.get('/api/v1/health', async () => ({ status: 'ok', ts: new Date().toISOString() }));
 
   return app;

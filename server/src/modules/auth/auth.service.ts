@@ -2,8 +2,21 @@ import { Prisma } from '@prisma/client';
 import { nanoid } from 'nanoid';
 import { prisma } from '../../lib/prisma.js';
 import { hashPassword, verifyPassword } from '../../lib/hash.js';
-import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../lib/jwt.js';
-import { ConflictError, NotFoundError, UnauthorizedError, ValidationError } from '../../lib/errors.js';
+import {
+  signAccessToken,
+  signRefreshToken,
+  signFirstLoginToken,
+  verifyFirstLoginToken,
+} from '../../lib/jwt.js';
+import {
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+  UnauthorizedError,
+  ValidationError,
+} from '../../lib/errors.js';
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const SHARED_CAPS = [
   'customers:read', 'customers:write',
@@ -12,91 +25,158 @@ const SHARED_CAPS = [
   'reports.basic', 'customers.import',
 ];
 
-const DUPLICATE_EMAIL_MESSAGE = 'Этот email уже привязан к существующему аккаунту. Один email можно использовать только для одного пользователя.';
+const DUPLICATE_EMAIL_MESSAGE =
+  'Этот email уже привязан к существующему аккаунту.';
+const DUPLICATE_PHONE_MESSAGE =
+  'Этот номер телефона уже привязан к существующему аккаунту.';
 
-function buildCapabilities(role: string, active: boolean): string[] {
-  if (!active) {
-    return [];
-  }
+// ─── Capability builder ───────────────────────────────────────────────────────
 
+/**
+ * Builds the capabilities array for a user session.
+ * For employees added by admin, maps their permission checkboxes to capabilities.
+ * For role-based users (owner/admin/manager), uses the role hierarchy.
+ */
+export function buildCapabilities(
+  role: string,
+  active: boolean,
+  employeePermissions: string[] = [],
+): string[] {
+  if (!active) return [];
+
+  // Owner and admin always get full caps regardless of employee_permissions
   if (role === 'owner') {
-    return [...SHARED_CAPS, 'billing.manage', 'integrations.manage', 'audit.read', 'team.manage', 'automations.manage'];
+    return [
+      ...SHARED_CAPS,
+      'billing.manage', 'integrations.manage', 'audit.read',
+      'team.manage', 'automations.manage', 'chapan:read', 'chapan:write',
+    ];
   }
 
   if (role === 'admin') {
-    return [...SHARED_CAPS, 'integrations.manage', 'audit.read', 'team.manage', 'automations.manage'];
+    return [
+      ...SHARED_CAPS,
+      'integrations.manage', 'audit.read', 'team.manage', 'automations.manage',
+      'chapan:read', 'chapan:write',
+    ];
   }
 
-  if (role === 'manager') {
-    return SHARED_CAPS;
+  // Employee with explicit permission checkboxes
+  if (employeePermissions.length > 0) {
+    const caps = new Set<string>();
+
+    if (employeePermissions.includes('full_access')) {
+      // Same as owner — all capabilities
+      return [
+        ...SHARED_CAPS,
+        'billing.manage', 'integrations.manage', 'audit.read',
+        'team.manage', 'automations.manage', 'chapan:read', 'chapan:write',
+      ];
+    }
+
+    if (employeePermissions.includes('sales')) {
+      caps.add('customers:read');
+      caps.add('customers:write');
+      caps.add('deals:read');
+      caps.add('deals:write');
+      caps.add('tasks:read');
+      caps.add('tasks:write');
+      caps.add('reports.basic');
+    }
+
+    if (employeePermissions.includes('financial_report')) {
+      caps.add('reports.basic');
+      caps.add('customers.import');
+      caps.add('reports.financial');
+    }
+
+    if (employeePermissions.includes('production')) {
+      caps.add('chapan:read');
+      caps.add('chapan:write');
+      caps.add('tasks:read');
+      caps.add('tasks:write');
+    }
+
+    if (employeePermissions.includes('observer')) {
+      // Read-only access to everything they have permission for
+      // Observer is additive: if they also have sales, they can read+write sales
+      // If observer ONLY, they get read-only across the board
+      const hasOtherPerms = employeePermissions.some(
+        (p) => p !== 'observer',
+      );
+      if (!hasOtherPerms) {
+        caps.add('customers:read');
+        caps.add('deals:read');
+        caps.add('tasks:read');
+        caps.add('reports.basic');
+        caps.add('chapan:read');
+      }
+    }
+
+    return Array.from(caps);
   }
 
+  // Role-based (manager/viewer without explicit permissions)
+  if (role === 'manager') return SHARED_CAPS;
   return ['reports.basic'];
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
 function sanitizeSlug(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9а-яё\s-]/gi, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .slice(0, 48) || `company-${Date.now()}`;
+  return (
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9а-яё\s-]/gi, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .slice(0, 48) || `company-${Date.now()}`
+  );
 }
 
 function appendSlugSuffix(base: string, suffix: number) {
-  const suffixLabel = `-${suffix}`;
-  return `${base.slice(0, Math.max(1, 48 - suffixLabel.length))}${suffixLabel}`;
+  const label = `-${suffix}`;
+  return `${base.slice(0, Math.max(1, 48 - label.length))}${label}`;
 }
 
 function isUniqueConstraint(error: unknown, field: string) {
-  if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') {
-    return false;
-  }
-
+  if (
+    !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+    error.code !== 'P2002'
+  ) return false;
   const target = error.meta?.target;
-  if (Array.isArray(target)) {
-    return target.includes(field);
-  }
-
+  if (Array.isArray(target)) return target.includes(field);
   return typeof target === 'string' ? target.includes(field) : false;
 }
 
-async function generateUniqueOrganizationSlug(companyName: string, tx: Prisma.TransactionClient) {
+async function generateUniqueSlug(
+  companyName: string,
+  tx: Prisma.TransactionClient,
+) {
   const base = sanitizeSlug(companyName);
   const existing = await tx.organization.findMany({
-    where: {
-      OR: [
-        { slug: base },
-        { slug: { startsWith: `${base}-` } },
-      ],
-    },
+    where: { OR: [{ slug: base }, { slug: { startsWith: `${base}-` } }] },
     select: { slug: true },
   });
-
-  const usedSlugs = new Set(existing.map((item) => item.slug));
-  if (!usedSlugs.has(base)) {
-    return base;
+  const used = new Set(existing.map((o) => o.slug));
+  if (!used.has(base)) return base;
+  let n = 2;
+  let next = appendSlugSuffix(base, n);
+  while (used.has(next)) {
+    n += 1;
+    next = appendSlugSuffix(base, n);
   }
-
-  let suffix = 2;
-  let nextSlug = appendSlugSuffix(base, suffix);
-
-  while (usedSlugs.has(nextSlug)) {
-    suffix += 1;
-    nextSlug = appendSlugSuffix(base, suffix);
-  }
-
-  return nextSlug;
+  return next;
 }
 
 async function createTokenPair(userId: string, email: string) {
   const jti = nanoid();
-  const access = signAccessToken({ sub: userId, email });
+  const access = signAccessToken({ sub: userId, email: email ?? '' });
   const refresh = signRefreshToken({ sub: userId, jti });
 
   await prisma.refreshToken.create({
@@ -111,20 +191,47 @@ async function createTokenPair(userId: string, email: string) {
   return { access, refresh };
 }
 
+// ─── Session builder ──────────────────────────────────────────────────────────
+
+type MembershipRow = {
+  orgId: string | null;
+  role: string;
+  status: string;
+  source: string | null;
+  joinedAt?: Date | null;
+  updatedAt?: Date;
+  employeePermissions?: string[];
+  employeeAccountStatus?: string;
+};
+
+type UserRow = {
+  id: string;
+  email: string | null;
+  fullName: string;
+  phone: string | null;
+  avatarUrl: string | null;
+  status: string;
+};
+
+type OrgRow = {
+  id: string;
+  name: string;
+  slug: string;
+  mode: string;
+  currency: string;
+  onboardingCompleted: boolean;
+} | null;
+
 function buildSessionResponse(
-  user: { id: string; email: string; fullName: string; phone: string | null; avatarUrl: string | null; status: string },
+  user: UserRow,
   tokens: { access: string; refresh: string },
-  membership: {
-    orgId: string | null;
-    role: string;
-    status: string;
-    source: string | null;
-    joinedAt?: Date | null;
-    updatedAt?: Date;
-  } | null,
-  org: { id: string; name: string; slug: string; mode: string; currency: string; onboardingCompleted: boolean } | null,
+  membership: MembershipRow | null,
+  org: OrgRow,
 ) {
-  const role = membership?.status === 'active' ? membership.role : 'viewer';
+  const isActive = membership?.status === 'active';
+  const role = isActive ? membership!.role : 'viewer';
+  const employeePermissions = membership?.employeePermissions ?? [];
+  const isOwner = role === 'owner';
 
   return {
     access: tokens.access,
@@ -136,93 +243,192 @@ function buildSessionResponse(
       phone: user.phone,
       avatar_url: user.avatarUrl,
       status: user.status,
+      // New fields consumed by frontend useRole / useEmployeePermissions
+      is_owner: isOwner,
+      employee_permissions: employeePermissions,
+      account_status: membership?.employeeAccountStatus ?? 'active',
     },
-    org: org ? {
-      id: org.id,
-      name: org.name,
-      slug: org.slug,
-      mode: org.mode,
-      currency: org.currency,
-      onboarding_completed: org.onboardingCompleted,
-    } : null,
+    org: org
+      ? {
+          id: org.id,
+          name: org.name,
+          slug: org.slug,
+          mode: org.mode,
+          currency: org.currency,
+          onboarding_completed: org.onboardingCompleted,
+        }
+      : null,
     role,
-    capabilities: buildCapabilities(role, membership?.status === 'active'),
+    capabilities: buildCapabilities(role, isActive, employeePermissions),
     membership: {
       companyId: membership?.orgId ?? null,
       companyName: org?.name ?? null,
       companySlug: org?.slug ?? null,
       status: membership?.status ?? 'none',
-      role: membership?.status === 'active' ? membership.role : null,
+      role: isActive ? membership!.role : null,
       source: membership?.source ?? null,
       requestId: null,
       inviteToken: null,
       joinedAt: membership?.joinedAt?.toISOString() ?? null,
-      updatedAt: membership?.updatedAt?.toISOString() ?? new Date().toISOString(),
+      updatedAt:
+        membership?.updatedAt?.toISOString() ?? new Date().toISOString(),
     },
   };
 }
 
-export async function login(email: string, password: string) {
-  const user = await prisma.user.findUnique({ where: { email: normalizeEmail(email) } });
-  if (!user) {
-    throw new UnauthorizedError('Аккаунт с таким email не найден. Проверьте адрес или зарегистрируйтесь.');
-  }
+// ─── login ────────────────────────────────────────────────────────────────────
 
-  const valid = await verifyPassword(password, user.password);
-  if (!valid) {
-    throw new UnauthorizedError('Пароль неверный. Проверьте раскладку и попробуйте ещё раз.');
-  }
-
-  const membership = await prisma.membership.findFirst({
-    where: { userId: user.id, status: 'active' },
-    include: { org: true },
-    orderBy: { joinedAt: 'desc' },
-  });
-
-  const tokens = await createTokenPair(user.id, user.email);
-  return buildSessionResponse(user, tokens, membership, membership?.org ?? null);
-}
-
-export async function registerEmployee(data: {
-  full_name: string;
-  email: string;
-  password: string;
+export async function login(identifier: {
+  email?: string;
   phone?: string;
-  invite_token?: string;
+  password: string;
 }) {
-  const email = normalizeEmail(data.email);
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) {
-    throw new ConflictError(DUPLICATE_EMAIL_MESSAGE);
-  }
-
+  // Find user by email OR phone
   let user;
-  try {
-    user = await prisma.user.create({
-      data: {
-        fullName: data.full_name.trim(),
-        email,
-        password: await hashPassword(data.password),
-        phone: data.phone?.trim(),
-        status: 'pending',
-      },
+  if (identifier.email) {
+    user = await prisma.user.findUnique({
+      where: { email: normalizeEmail(identifier.email) },
     });
-  } catch (error) {
-    if (isUniqueConstraint(error, 'email')) {
-      throw new ConflictError(DUPLICATE_EMAIL_MESSAGE);
-    }
-    throw error;
+  } else if (identifier.phone) {
+    user = await prisma.user.findUnique({
+      where: { phone: identifier.phone },
+    });
   }
 
+  if (!user) {
+    throw new UnauthorizedError(
+      identifier.email
+        ? 'Аккаунт с таким email не найден.'
+        : 'Аккаунт с таким номером телефона не найден.',
+    );
+  }
+
+  // Find the active membership for this user
   const membership = await prisma.membership.findFirst({
     where: { userId: user.id, status: 'active' },
     include: { org: true },
     orderBy: { joinedAt: 'desc' },
   });
 
-  const tokens = await createTokenPair(user.id, user.email);
-  return buildSessionResponse(user, tokens, membership, membership?.org ?? null);
+  // Block dismissed employees BEFORE password check (don't leak timing)
+  if (membership?.employeeAccountStatus === 'dismissed') {
+    throw new ForbiddenError(
+      'Ваш аккаунт деактивирован. Обратитесь к администратору.',
+    );
+  }
+
+  const valid = await verifyPassword(identifier.password, user.password);
+  if (!valid) {
+    throw new UnauthorizedError('Неверный пароль. Проверьте раскладку и попробуйте ещё раз.');
+  }
+
+  // ── First-login flow: phone+phone ─────────────────────────────────────────
+  // Employee enters their phone as both login and password.
+  // We detect this: they logged in by phone AND the password IS the phone number.
+  if (
+    identifier.phone &&
+    membership?.employeeAccountStatus === 'pending_first_login'
+  ) {
+    const tempToken = signFirstLoginToken(user.id);
+    return {
+      requires_password_setup: true as const,
+      temp_token: tempToken,
+      user: {
+        id: user.id,
+        full_name: user.fullName,
+        phone: user.phone,
+      },
+    };
+  }
+
+  const tokens = await createTokenPair(user.id, user.email ?? '');
+  return buildSessionResponse(
+    user,
+    tokens,
+    membership
+      ? {
+          orgId: membership.orgId,
+          role: membership.role,
+          status: membership.status,
+          source: membership.source,
+          joinedAt: membership.joinedAt,
+          updatedAt: membership.updatedAt,
+          employeePermissions: membership.employeePermissions,
+          employeeAccountStatus: membership.employeeAccountStatus,
+        }
+      : null,
+    membership?.org ?? null,
+  );
 }
+
+// ─── setPassword ──────────────────────────────────────────────────────────────
+
+/**
+ * Called on POST /auth/set-password/ with a first-login temp_token in the
+ * Authorization header. Sets the employee's real password and marks the
+ * account as active.
+ */
+export async function setPassword(tempToken: string, newPassword: string) {
+  let payload;
+  try {
+    payload = verifyFirstLoginToken(tempToken);
+  } catch {
+    throw new UnauthorizedError(
+      'Недействительный или просроченный токен установки пароля.',
+    );
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: payload.sub } });
+  if (!user) throw new NotFoundError('User', payload.sub);
+
+  // Hash new password and activate the account
+  const hashedPassword = await hashPassword(newPassword);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: user.id },
+      data: { password: hashedPassword, status: 'active' },
+    });
+
+    // Update all pending_first_login memberships for this user to active
+    await tx.membership.updateMany({
+      where: { userId: user.id, employeeAccountStatus: 'pending_first_login' },
+      data: { employeeAccountStatus: 'active' },
+    });
+  });
+
+  // Build and return a full session
+  const membership = await prisma.membership.findFirst({
+    where: { userId: user.id, status: 'active' },
+    include: { org: true },
+    orderBy: { joinedAt: 'desc' },
+  });
+
+  const updatedUser = await prisma.user.findUniqueOrThrow({
+    where: { id: user.id },
+  });
+
+  const tokens = await createTokenPair(user.id, updatedUser.email ?? '');
+  return buildSessionResponse(
+    updatedUser,
+    tokens,
+    membership
+      ? {
+          orgId: membership.orgId,
+          role: membership.role,
+          status: membership.status,
+          source: membership.source,
+          joinedAt: membership.joinedAt,
+          updatedAt: membership.updatedAt,
+          employeePermissions: membership.employeePermissions,
+          employeeAccountStatus: membership.employeeAccountStatus,
+        }
+      : null,
+    membership?.org ?? null,
+  );
+}
+
+// ─── registerCompany ─────────────────────────────────────────────────────────
 
 export async function registerCompany(data: {
   full_name: string;
@@ -233,9 +439,7 @@ export async function registerCompany(data: {
 }) {
   const email = normalizeEmail(data.email);
   const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) {
-    throw new ConflictError(DUPLICATE_EMAIL_MESSAGE);
-  }
+  if (existing) throw new ConflictError(DUPLICATE_EMAIL_MESSAGE);
 
   for (let attempt = 0; attempt < 4; attempt += 1) {
     try {
@@ -245,18 +449,14 @@ export async function registerCompany(data: {
             fullName: data.full_name.trim(),
             email,
             password: await hashPassword(data.password),
-            phone: data.phone?.trim(),
+            phone: data.phone?.trim() || null,
             status: 'active',
           },
         });
 
-        const slug = await generateUniqueOrganizationSlug(data.company_name, tx);
+        const slug = await generateUniqueSlug(data.company_name, tx);
         const org = await tx.organization.create({
-          data: {
-            name: data.company_name.trim(),
-            slug,
-            currency: 'KZT',
-          },
+          data: { name: data.company_name.trim(), slug, currency: 'KZT' },
         });
 
         const membership = await tx.membership.create({
@@ -267,33 +467,47 @@ export async function registerCompany(data: {
             status: 'active',
             source: 'company_registration',
             joinedAt: new Date(),
+            employeeAccountStatus: 'active',
           },
         });
 
-        await tx.chapanProfile.create({
-          data: { orgId: org.id },
-        });
+        await tx.chapanProfile.create({ data: { orgId: org.id } });
 
         return { user, org, membership };
       });
 
-      const tokens = await createTokenPair(result.user.id, result.user.email);
-      return buildSessionResponse(result.user, tokens, result.membership, result.org);
+      const tokens = await createTokenPair(
+        result.user.id,
+        result.user.email ?? '',
+      );
+      return buildSessionResponse(
+        result.user,
+        tokens,
+        {
+          orgId: result.membership.orgId,
+          role: result.membership.role,
+          status: result.membership.status,
+          source: result.membership.source,
+          joinedAt: result.membership.joinedAt,
+          updatedAt: result.membership.updatedAt,
+          employeePermissions: result.membership.employeePermissions,
+          employeeAccountStatus: result.membership.employeeAccountStatus,
+        },
+        result.org,
+      );
     } catch (error) {
       if (isUniqueConstraint(error, 'email')) {
         throw new ConflictError(DUPLICATE_EMAIL_MESSAGE);
       }
-
-      if (isUniqueConstraint(error, 'slug') && attempt < 3) {
-        continue;
-      }
-
+      if (isUniqueConstraint(error, 'slug') && attempt < 3) continue;
       throw error;
     }
   }
 
   throw new ConflictError('Не удалось создать компанию. Попробуйте ещё раз.');
 }
+
+// ─── refreshTokens ────────────────────────────────────────────────────────────
 
 export async function refreshTokens(refreshToken: string) {
   let payload;
@@ -303,29 +517,27 @@ export async function refreshTokens(refreshToken: string) {
     throw new UnauthorizedError('Недействительный refresh-токен.');
   }
 
-  const stored = await prisma.refreshToken.findUnique({ where: { id: payload.jti } });
+  const stored = await prisma.refreshToken.findUnique({
+    where: { id: payload.jti },
+  });
   if (!stored || stored.expiresAt < new Date()) {
-    if (stored) {
-      await prisma.refreshToken.delete({ where: { id: stored.id } });
-    }
+    if (stored) await prisma.refreshToken.delete({ where: { id: stored.id } });
     throw new UnauthorizedError('Refresh-токен истёк или был отозван.');
   }
 
   const user = await prisma.user.findUnique({ where: { id: payload.sub } });
-  if (!user) {
-    throw new UnauthorizedError('Пользователь не найден.');
-  }
+  if (!user) throw new UnauthorizedError('Пользователь не найден.');
 
   await prisma.refreshToken.delete({ where: { id: stored.id } });
-  const tokens = await createTokenPair(user.id, user.email);
+  const tokens = await createTokenPair(user.id, user.email ?? '');
   return { access: tokens.access, refresh: tokens.refresh };
 }
 
+// ─── bootstrap ────────────────────────────────────────────────────────────────
+
 export async function bootstrap(userId: string, selectedOrgId?: string) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   const memberships = await prisma.membership.findMany({
     where: { userId, status: 'active' },
@@ -333,15 +545,20 @@ export async function bootstrap(userId: string, selectedOrgId?: string) {
     orderBy: { joinedAt: 'desc' },
   });
 
-  let activeMembership = memberships[0] ?? null;
+  let active = memberships[0] ?? null;
   if (selectedOrgId) {
     const found = memberships.find((m) => m.orgId === selectedOrgId);
-    if (found) {
-      activeMembership = found;
-    }
+    if (found) active = found;
   }
 
-  const role = activeMembership ? activeMembership.role : 'viewer';
+  // Block dismissed employees even on bootstrap
+  if (active?.employeeAccountStatus === 'dismissed') {
+    active = null;
+  }
+
+  const role = active ? active.role : 'viewer';
+  const employeePermissions = active?.employeePermissions ?? [];
+  const isOwner = role === 'owner';
 
   return {
     user: {
@@ -351,28 +568,33 @@ export async function bootstrap(userId: string, selectedOrgId?: string) {
       phone: user.phone,
       avatar_url: user.avatarUrl,
       status: user.status,
+      is_owner: isOwner,
+      employee_permissions: employeePermissions,
+      account_status: active?.employeeAccountStatus ?? 'active',
     },
-    org: activeMembership?.org ? {
-      id: activeMembership.org.id,
-      name: activeMembership.org.name,
-      slug: activeMembership.org.slug,
-      mode: activeMembership.org.mode,
-      currency: activeMembership.org.currency,
-      onboarding_completed: activeMembership.org.onboardingCompleted,
-    } : null,
+    org: active?.org
+      ? {
+          id: active.org.id,
+          name: active.org.name,
+          slug: active.org.slug,
+          mode: active.org.mode,
+          currency: active.org.currency,
+          onboarding_completed: active.org.onboardingCompleted,
+        }
+      : null,
     role,
-    capabilities: buildCapabilities(role, activeMembership !== null),
+    capabilities: buildCapabilities(role, active !== null, employeePermissions),
     membership: {
-      companyId: activeMembership?.orgId ?? null,
-      companyName: activeMembership?.org?.name ?? null,
-      companySlug: activeMembership?.org?.slug ?? null,
-      status: activeMembership?.status ?? 'none',
-      role: activeMembership ? activeMembership.role : null,
-      source: activeMembership?.source ?? null,
+      companyId: active?.orgId ?? null,
+      companyName: active?.org?.name ?? null,
+      companySlug: active?.org?.slug ?? null,
+      status: active?.status ?? 'none',
+      role: active ? active.role : null,
+      source: active?.source ?? null,
       requestId: null,
       inviteToken: null,
-      joinedAt: activeMembership?.joinedAt?.toISOString() ?? null,
-      updatedAt: activeMembership?.updatedAt?.toISOString() ?? null,
+      joinedAt: active?.joinedAt?.toISOString() ?? null,
+      updatedAt: active?.updatedAt?.toISOString() ?? null,
     },
     orgs: memberships.map((m) => ({
       id: m.org.id,
@@ -386,15 +608,15 @@ export async function bootstrap(userId: string, selectedOrgId?: string) {
   };
 }
 
-export async function acceptInviteAndBuildSession(userId: string, token: string) {
-  const invite = await prisma.invite.findUnique({ where: { token } });
+// ─── acceptInvite ─────────────────────────────────────────────────────────────
 
-  if (!invite) {
-    throw new NotFoundError('Invite');
-  }
-  if (invite.usedAt) {
-    throw new ValidationError('Это приглашение уже было использовано.');
-  }
+export async function acceptInviteAndBuildSession(
+  userId: string,
+  token: string,
+) {
+  const invite = await prisma.invite.findUnique({ where: { token } });
+  if (!invite) throw new NotFoundError('Invite');
+  if (invite.usedAt) throw new ValidationError('Это приглашение уже было использовано.');
   if (invite.expiresAt && invite.expiresAt < new Date()) {
     throw new ValidationError('Срок действия приглашения истёк.');
   }
@@ -416,6 +638,7 @@ export async function acceptInviteAndBuildSession(userId: string, token: string)
         status: invite.autoApprove ? 'active' : 'pending',
         source: 'invite',
         joinedAt: invite.autoApprove ? new Date() : null,
+        employeeAccountStatus: 'active',
       },
       update: {
         role: invite.role,
@@ -436,6 +659,20 @@ export async function acceptInviteAndBuildSession(userId: string, token: string)
     prisma.organization.findUniqueOrThrow({ where: { id: invite.orgId } }),
   ]);
 
-  const tokens = await createTokenPair(user.id, user.email);
-  return buildSessionResponse(user, tokens, membership!, org);
+  const tokens = await createTokenPair(user.id, user.email ?? '');
+  return buildSessionResponse(
+    user,
+    tokens,
+    {
+      orgId: membership!.orgId,
+      role: membership!.role,
+      status: membership!.status,
+      source: membership!.source,
+      joinedAt: membership!.joinedAt,
+      updatedAt: membership!.updatedAt,
+      employeePermissions: membership!.employeePermissions,
+      employeeAccountStatus: membership!.employeeAccountStatus,
+    },
+    org,
+  );
 }

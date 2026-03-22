@@ -1,4 +1,4 @@
-export type WorkspaceWidgetKind = 'customers' | 'deals' | 'tasks' | 'reports' | 'imports' | 'chapan' | 'requests';
+export type WorkspaceWidgetKind = 'customers' | 'deals' | 'tasks' | 'reports' | 'imports' | 'chapan' | 'requests' | 'warehouse' | 'accounting';
 export type WorkspaceSceneTheme = 'default' | 'morning' | 'overcast' | 'dusk' | 'night';
 export type WorkspaceSceneMode = 'surface' | 'flight';
 export type WorkspaceSceneTerrainMode = 'full' | 'calm' | 'void';

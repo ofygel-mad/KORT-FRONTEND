@@ -1,24 +1,28 @@
 import type { LucideIcon } from 'lucide-react';
-import { Briefcase, CheckSquare, DatabaseZap, FolderInput, Inbox, Users, Factory } from 'lucide-react';
+import { Archive, Briefcase, CheckSquare, DatabaseZap, FolderInput, Inbox, Users, Factory, BookOpen } from 'lucide-react';
 import type { WorkspaceSnapshot, WorkspaceWidgetKind } from './model/types';
 
 // Tile previews
-import { LeadsTilePreview }    from './widgets/customers/LeadsTilePreview';
-import { DealsTilePreview }    from './widgets/deals/DealsTilePreview';
-import { TasksTilePreview }    from './widgets/tasks/TasksTilePreview';
-import { ReportsTilePreview }  from './widgets/reports/ReportsTilePreview';
-import { ImportsTilePreview }  from './widgets/imports/ImportsTilePreview';
-import { ChapanTilePreview }   from './widgets/chapan/ChapanTilePreview';
-import { RequestsTilePreview } from './widgets/requests/RequestsTilePreview';
+import { LeadsTilePreview }      from './widgets/customers/LeadsTilePreview';
+import { DealsTilePreview }      from './widgets/deals/DealsTilePreview';
+import { TasksTilePreview }      from './widgets/tasks/TasksTilePreview';
+import { ReportsTilePreview }    from './widgets/reports/ReportsTilePreview';
+import { ImportsTilePreview }    from './widgets/imports/ImportsTilePreview';
+import { ChapanTilePreview }     from './widgets/chapan/ChapanTilePreview';
+import { RequestsTilePreview }   from './widgets/requests/RequestsTilePreview';
+import { WarehouseTilePreview }  from './widgets/warehouse/WarehouseTilePreview';
+import { AccountingTilePreview } from './widgets/accounting/AccountingTilePreview';
 
 // Full SPA environments
-import { LeadsSPA }     from '../leads-spa';
-import { DealsSPA }     from '../deals-spa';
-import { TasksSPA }     from './widgets/tasks/spa/TasksSPA';
-import { ReportsSPA }   from './widgets/reports/spa/ReportsSPA';
-import { ImportsSPA }   from './widgets/imports/spa/ImportsSPA';
-import { ChapanEntry }  from './widgets/chapan/spa/ChapanEntry';
-import { RequestsSPA }  from './widgets/requests/spa/RequestsSPA';
+import { LeadsSPA }      from '../leads-spa';
+import { DealsSPA }      from '../deals-spa';
+import { TasksSPA }      from './widgets/tasks/spa/TasksSPA';
+import { ReportsSPA }    from './widgets/reports/spa/ReportsSPA';
+import { ImportsSPA }    from './widgets/imports/spa/ImportsSPA';
+import { ChapanEntry }   from './widgets/chapan/spa/ChapanEntry';
+import { RequestsSPA }   from './widgets/requests/spa/RequestsSPA';
+import { WarehouseSPA }  from '../warehouse-spa';
+import { AccountingSPA } from '../accounting-spa/AccountingSPA';
 
 export interface WorkspaceWidgetDefinition {
   kind: WorkspaceWidgetKind;
@@ -93,6 +97,24 @@ export const WORKSPACE_WIDGETS: WorkspaceWidgetDefinition[] = [
     icon: Factory,
     renderPreview: (_s, v, tid) => <ChapanTilePreview key={v} tileId={tid ?? 'default'} />,
     renderSPA:     (_s, v, tid) => <ChapanEntry key={v} tileId={tid ?? 'default'} />,
+  },
+  {
+    kind: 'warehouse',
+    title: 'Склад',
+    description: 'Остатки, движения, резервы. Автоматически проверяет запасы под заказы производства и сигнализирует при нехватке.',
+    requiresCompanyAccess: true,
+    icon: Archive,
+    renderPreview: (_s, v, tid) => <WarehouseTilePreview key={v} tileId={tid ?? 'default'} />,
+    renderSPA:     (_s, v, tid) => <WarehouseSPA key={v} tileId={tid ?? 'default'} />,
+  },
+  {
+    kind: 'accounting',
+    title: 'Учёт и Аудит',
+    description: 'Финансовый хаб: журнал проводок с иммутабельной цепочкой, P&L, движение ДС, дебиторка, детектор разрывов между модулями.',
+    requiresCompanyAccess: true,
+    icon: BookOpen,
+    renderPreview: (_s, v, tid) => <AccountingTilePreview key={v} tileId={tid ?? 'default'} />,
+    renderSPA:     (_s, v, tid) => <AccountingSPA key={v} tileId={tid ?? 'default'} />,
   },
 ];
 

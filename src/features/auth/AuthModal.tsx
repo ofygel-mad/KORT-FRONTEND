@@ -2,8 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowLeft,
-  ArrowUpRight,
-  Blocks,
   Building2,
   Eye,
   EyeOff,
@@ -16,6 +14,10 @@ import {
 } from 'lucide-react';
 import { api } from '../../shared/api/client';
 import type { AuthSessionResponse } from '../../shared/api/contracts';
+import {
+  isFirstLoginResponse,
+  type LoginApiResponse,
+} from '../../shared/api/contracts';
 import { readApiErrorMessage, readApiErrorStatus } from '../../shared/api/errors';
 import { useAuthStore } from '../../shared/stores/auth';
 import { usePinStore } from '../../shared/stores/pin';
@@ -24,9 +26,22 @@ import {
   isKazakhPhoneComplete,
   normalizeKazakhPhone,
 } from '../../shared/utils/kz';
+import { SetPasswordStep } from './SetPasswordStep';
 import styles from './AuthModal.module.css';
 
-type Step = 'login' | 'pin' | 'choose-type' | 'employee' | 'company';
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+/**
+ * Шаги модального окна:
+ * - login    : стандартный вход (email или телефон + пароль)
+ * - pin      : быстрый вход по PIN-коду
+ * - company  : регистрация компании (единственный публичный путь регистрации)
+ * - set-password : установка пароля при первом входе сотрудника
+ *
+ * Намеренно удалены: 'choose-type' и 'employee'
+ * (сотрудники регистрируются только через администратора в настройках)
+ */
+type Step = 'login' | 'pin' | 'company' | 'set-password';
 type BrandScene = 'network' | 'briefing' | 'flow';
 
 interface AuthModalProps {
@@ -35,6 +50,8 @@ interface AuthModalProps {
   onAuthSuccess: () => void;
   initialStep?: Step;
 }
+
+// ─── Brand carousel data ──────────────────────────────────────────────────────
 
 const BRAND_CAROUSEL = [
   {
@@ -60,24 +77,16 @@ const BRAND_CAROUSEL = [
   },
 ] as const;
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function readAuthError(cause: unknown, fallback: string) {
   const message = readApiErrorMessage(cause, '').trim();
-  if (message) {
-    return message;
-  }
+  if (message) return message;
 
   const status = readApiErrorStatus(cause);
-  if (status === 401) {
-    return 'Неверный email или пароль.';
-  }
-
-  if (status === 409) {
-    return 'Этот email уже занят. Один email можно использовать только для одного аккаунта.';
-  }
-
-  if (status === 400) {
-    return 'Проверьте заполнение полей и попробуйте ещё раз.';
-  }
+  if (status === 401) return 'Неверный логин или пароль.';
+  if (status === 409) return 'Этот email уже занят.';
+  if (status === 400) return 'Проверьте заполнение полей и попробуйте ещё раз.';
 
   return fallback;
 }
@@ -85,6 +94,22 @@ function readAuthError(cause: unknown, fallback: string) {
 function normalizePhonePayload(value: string) {
   return normalizeKazakhPhone(value) ?? undefined;
 }
+
+/**
+ * Определяет, является ли введённая строка номером телефона.
+ * Критерий: начинается с +7, 7, 8 или содержит только цифры длиной >= 10.
+ */
+function looksLikePhone(value: string): boolean {
+  const trimmed = value.trim();
+  return (
+    trimmed.startsWith('+7') ||
+    trimmed.startsWith('+') ||
+    /^[78]\d/.test(trimmed) ||
+    /^\d{10,}$/.test(trimmed.replace(/[\s\-()]/g, ''))
+  );
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function PasswordField({
   value,
@@ -98,7 +123,6 @@ function PasswordField({
   autoComplete?: string;
 }) {
   const [visible, setVisible] = useState(false);
-
   return (
     <div className={styles.passwordField}>
       <input
@@ -112,7 +136,7 @@ function PasswordField({
       <button
         type="button"
         className={styles.passwordToggle}
-        onClick={() => setVisible((state) => !state)}
+        onClick={() => setVisible((s) => !s)}
         aria-label={visible ? 'Скрыть пароль' : 'Показать пароль'}
       >
         {visible ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -135,7 +159,6 @@ function BrandScenePreview({ scene }: { scene: BrandScene }) {
         <span className={`${styles.sceneLink} ${styles.sceneLinkLeft}`} />
         <span className={`${styles.sceneLink} ${styles.sceneLinkRight}`} />
         <span className={`${styles.sceneLink} ${styles.sceneLinkBottom}`} />
-
         <div className={`${styles.sceneMiniCard} ${styles.sceneMiniCardTop}`}>
           <span className={styles.sceneMiniLabel}>роли</span>
           <strong>owner / admin / team</strong>
@@ -157,13 +180,11 @@ function BrandScenePreview({ scene }: { scene: BrandScene }) {
         <span className={`${styles.sceneAvatar} ${styles.sceneAvatarTwo}`} />
         <span className={`${styles.sceneAvatar} ${styles.sceneAvatarThree}`} />
         <span className={`${styles.sceneAvatar} ${styles.sceneAvatarFour}`} />
-
         <div className={styles.sceneBoard}>
           <span className={`${styles.sceneBoardRow} ${styles.sceneBoardRowLong}`} />
           <span className={`${styles.sceneBoardRow} ${styles.sceneBoardRowShort}`} />
           <span className={`${styles.sceneBoardRow} ${styles.sceneBoardRowMid}`} />
         </div>
-
         <div className={styles.sceneBriefCard}>
           <span className={styles.sceneMiniLabel}>синхронизация</span>
           <strong>обсуждение и решения</strong>
@@ -175,7 +196,6 @@ function BrandScenePreview({ scene }: { scene: BrandScene }) {
   return (
     <div className={`${styles.slideScene} ${styles.sceneFlow}`} aria-hidden="true">
       <span className={styles.sceneGlow} />
-
       <div className={styles.sceneLane}>
         <div className={`${styles.sceneStage} ${styles.sceneStageActive}`}>
           <span className={styles.sceneStageLabel}>лид</span>
@@ -193,7 +213,6 @@ function BrandScenePreview({ scene }: { scene: BrandScene }) {
           <span className={styles.sceneStageBar} />
         </div>
       </div>
-
       <div className={styles.sceneGraph}>
         <span className={`${styles.sceneGraphBar} ${styles.sceneGraphBarLow}`} />
         <span className={`${styles.sceneGraphBar} ${styles.sceneGraphBarMid}`} />
@@ -219,26 +238,13 @@ function PinStep({
   const [shake, setShake] = useState(false);
   const pinLength = storedPin?.length ?? 4;
   const inputRef = useRef<HTMLInputElement>(null);
-
   const shakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    setDigits('');
-    setError('');
-  }, [storedPin]);
-
-  useEffect(() => {
-    return () => {
-      if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current);
-    };
-  }, []);
+  useEffect(() => { setDigits(''); setError(''); }, [storedPin]);
+  useEffect(() => () => { if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current); }, []);
 
   const submit = (value: string) => {
-    if (value === storedPin) {
-      onSuccess();
-      return;
-    }
-
+    if (value === storedPin) { onSuccess(); return; }
     setDigits('');
     setError('Неверный PIN-код.');
     setShake(true);
@@ -256,13 +262,16 @@ function PinStep({
           Быстрый вход доступен только на доверенном устройстве. Если PIN не подходит, переключитесь на пароль.
         </p>
       </div>
-
-      <div className={`${styles.pinArea} ${shake ? styles.pinAreaShake : ''}`} onClick={() => inputRef.current?.focus()} role="presentation">
+      <div
+        className={`${styles.pinArea} ${shake ? styles.pinAreaShake : ''}`}
+        onClick={() => inputRef.current?.focus()}
+        role="presentation"
+      >
         <div className={styles.pinDots}>
-          {Array.from({ length: pinLength }, (_, index) => (
+          {Array.from({ length: pinLength }, (_, i) => (
             <div
-              key={index}
-              className={`${styles.pinDot} ${digits.length > index ? styles.pinDotFilled : ''} ${error ? styles.pinDotError : ''}`}
+              key={i}
+              className={`${styles.pinDot} ${digits.length > i ? styles.pinDotFilled : ''} ${error ? styles.pinDotError : ''}`}
             />
           ))}
         </div>
@@ -273,19 +282,15 @@ function PinStep({
           inputMode="numeric"
           autoFocus
           value={digits}
-          onChange={(event) => {
-            const next = event.target.value.replace(/\D/g, '').slice(0, pinLength);
+          onChange={(e) => {
+            const next = e.target.value.replace(/\D/g, '').slice(0, pinLength);
             setDigits(next);
             setError('');
-            if (next.length === pinLength) {
-              submit(next);
-            }
+            if (next.length === pinLength) submit(next);
           }}
         />
       </div>
-
       {error && <div className={styles.errorMessage}>{error}</div>}
-
       <button type="button" className={styles.linkButton} onClick={onUsePassword}>
         Войти с паролем
       </button>
@@ -293,12 +298,9 @@ function PinStep({
   );
 }
 
-export function AuthModal({
-  open,
-  onClose,
-  onAuthSuccess,
-  initialStep,
-}: AuthModalProps) {
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export function AuthModal({ open, onClose, onAuthSuccess, initialStep }: AuthModalProps) {
   const setAuth = useAuthStore((state) => state.setAuth);
   const inviteContext = useAuthStore((state) => state.inviteContext);
   const user = useAuthStore((state) => state.user);
@@ -307,14 +309,8 @@ export function AuthModal({
   const trustDevice = usePinStore((state) => state.trustDevice);
 
   const defaultStep = useMemo<Step>(() => {
-    if (initialStep) {
-      return initialStep;
-    }
-
-    if (user && pin && isTrustedDevice) {
-      return 'pin';
-    }
-
+    if (initialStep) return initialStep;
+    if (user && pin && isTrustedDevice) return 'pin';
     return 'login';
   }, [initialStep, isTrustedDevice, pin, user]);
 
@@ -323,46 +319,40 @@ export function AuthModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const [loginEmail, setLoginEmail] = useState('');
+  // ── Login state ───────────────────────────────────────────────────────────
+  // loginIdentifier принимает email ИЛИ телефон (любой формат)
+  const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
-  const [employeeName, setEmployeeName] = useState('');
-  const [employeeEmail, setEmployeeEmail] = useState('');
-  const [employeePhone, setEmployeePhone] = useState('');
-  const [employeePassword, setEmployeePassword] = useState('');
+  // ── First-login set-password state ────────────────────────────────────────
+  const [firstLoginTempToken, setFirstLoginTempToken] = useState('');
+  const [firstLoginUserName, setFirstLoginUserName] = useState('');
 
+  // ── Company registration state ────────────────────────────────────────────
   const [companyName, setCompanyName] = useState('');
   const [companyOwnerName, setCompanyOwnerName] = useState('');
   const [companyEmail, setCompanyEmail] = useState('');
   const [companyPhone, setCompanyPhone] = useState('');
   const [companyPassword, setCompanyPassword] = useState('');
+  const [companyPasswordConfirm, setCompanyPasswordConfirm] = useState('');
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
-
+    if (!open) return;
     setStep(defaultStep);
     setError('');
     setLoading(false);
   }, [defaultStep, open]);
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
-
+    if (!open) return;
     setActiveBrandSlide(0);
     const timer = window.setInterval(() => {
-      setActiveBrandSlide((current) => (current + 1) % BRAND_CAROUSEL.length);
+      setActiveBrandSlide((c) => (c + 1) % BRAND_CAROUSEL.length);
     }, 4600);
-
     return () => window.clearInterval(timer);
   }, [open]);
 
-  if (!open) {
-    return null;
-  }
+  if (!open) return null;
 
   const activeStory = BRAND_CAROUSEL[activeBrandSlide];
   const ActiveStoryIcon = activeStory.icon;
@@ -386,27 +376,56 @@ export function AuthModal({
     onAuthSuccess();
   }
 
+  // ── Login submit ───────────────────────────────────────────────────────────
   async function submitLogin() {
-    const email = loginEmail.trim().toLowerCase();
-    if (!email || !loginPassword.trim()) {
-      setError('Введите email и пароль.');
+    const rawIdentifier = loginIdentifier.trim();
+    const rawPassword = loginPassword;
+
+    if (!rawIdentifier || !rawPassword.trim()) {
+      setError('Введите логин и пароль.');
+      return;
+    }
+
+    // Нормализация: если это телефон — привести к +7XXXXXXXXXX
+    let identifier = rawIdentifier;
+    let isPhone = false;
+    if (looksLikePhone(rawIdentifier)) {
+      const normalized = normalizeKazakhPhone(rawIdentifier);
+      if (normalized) {
+        identifier = normalized;
+        isPhone = true;
+      }
+    }
+
+    if (isPhone && !isKazakhPhoneComplete(identifier)) {
+      setError('Введите полный номер телефона (10 цифр после +7).');
       return;
     }
 
     setLoading(true);
     setError('');
     try {
-      const session = await api.post<AuthSessionResponse | null>('/auth/login/', {
-        email,
-        password: loginPassword,
+      const response = await api.post<LoginApiResponse | null>('/auth/login/', {
+        // Бэкенд принимает либо поле email, либо phone — определяем по типу
+        ...(isPhone ? { phone: identifier } : { email: identifier.toLowerCase() }),
+        password: rawPassword,
       });
 
-      if (!session) {
-        setError('Аккаунт не найден. Проверьте данные или зарегистрируйтесь.');
+      if (!response) {
+        setError('Аккаунт не найден. Проверьте данные или обратитесь к администратору.');
         return;
       }
 
-      applySession(session);
+      // ── First-login flow: сотрудник без пароля ─────────────────────────
+      if (isFirstLoginResponse(response)) {
+        setFirstLoginTempToken(response.temp_token);
+        setFirstLoginUserName(response.user.full_name);
+        setStep('set-password');
+        return;
+      }
+
+      // ── Обычный вход ───────────────────────────────────────────────────
+      applySession(response);
     } catch (cause) {
       setError(readAuthError(cause, 'Не удалось выполнить вход.'));
     } finally {
@@ -414,46 +433,20 @@ export function AuthModal({
     }
   }
 
-  async function submitEmployeeRegistration() {
-    if (!employeeName.trim() || !employeeEmail.trim() || !employeePassword.trim()) {
-      setError('Заполните имя, email и пароль.');
-      return;
-    }
-
-    if (employeePhone.trim() && !isKazakhPhoneComplete(employeePhone)) {
-      setError('Телефон должен быть в формате +7 (___) ___-__-__.');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    try {
-      const session = await api.post<AuthSessionResponse | null>('/auth/register/employee/', {
-        full_name: employeeName.trim(),
-        email: employeeEmail.trim().toLowerCase(),
-        phone: normalizePhonePayload(employeePhone),
-        password: employeePassword,
-      });
-
-      if (!session) {
-        setError('Не удалось создать аккаунт сотрудника.');
-        return;
-      }
-
-      applySession(session);
-    } catch (cause) {
-      setError(readAuthError(cause, 'Не удалось завершить регистрацию.'));
-    } finally {
-      setLoading(false);
-    }
-  }
-
+  // ── Company registration submit ────────────────────────────────────────────
   async function submitCompanyRegistration() {
     if (!companyName.trim() || !companyOwnerName.trim() || !companyEmail.trim() || !companyPassword.trim()) {
-      setError('Заполните данные компании и владельца.');
+      setError('Заполните все обязательные поля.');
       return;
     }
-
+    if (companyPassword !== companyPasswordConfirm) {
+      setError('Пароли не совпадают.');
+      return;
+    }
+    if (companyPassword.length < 8) {
+      setError('Пароль должен содержать не менее 8 символов.');
+      return;
+    }
     if (companyPhone.trim() && !isKazakhPhoneComplete(companyPhone)) {
       setError('Телефон должен быть в формате +7 (___) ___-__-__.');
       return;
@@ -484,10 +477,10 @@ export function AuthModal({
   }
 
   const backTarget: Partial<Record<Step, Step>> = {
-    'choose-type': 'login',
-    employee: 'choose-type',
-    company: 'choose-type',
+    company: 'login',
     pin: 'login',
+    // set-password намеренно не имеет кнопки «Назад» — нельзя вернуться
+    // к состоянию до первого входа без повторной авторизации
   };
 
   return (
@@ -498,9 +491,10 @@ export function AuthModal({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onMouseDown={(event) => {
-          if (event.target === event.currentTarget) {
-            onClose();
-          }
+          // Закрывать модалку на шаге set-password не даём — пользователь
+          // обязан установить пароль, иначе аккаунт зависнет в pending
+          if (step === 'set-password') return;
+          if (event.target === event.currentTarget) onClose();
         }}
       >
         <motion.div
@@ -510,11 +504,11 @@ export function AuthModal({
           exit={{ opacity: 0, scale: 0.98, y: 8 }}
           transition={{ duration: 0.2 }}
         >
+          {/* ── Brand side ── */}
           <div className={styles.brandSide}>
             <div className={styles.brandHero}>
               <div className={styles.brandDisplay}>KORT</div>
             </div>
-
             <div className={styles.brandCarousel}>
               <AnimatePresence mode="wait" initial={false}>
                 <motion.article
@@ -536,16 +530,13 @@ export function AuthModal({
                       {String(BRAND_CAROUSEL.length).padStart(2, '0')}
                     </span>
                   </div>
-
                   <BrandScenePreview scene={activeStory.scene} />
-
                   <div className={styles.slideCopy}>
                     <strong className={styles.slideTitle}>{activeStory.title}</strong>
                     <p className={styles.slideText}>{activeStory.description}</p>
                   </div>
                 </motion.article>
               </AnimatePresence>
-
               <div className={styles.carouselDots} aria-label="Навигация по карточкам">
                 {BRAND_CAROUSEL.map((story, index) => (
                   <button
@@ -560,6 +551,7 @@ export function AuthModal({
             </div>
           </div>
 
+          {/* ── Form side ── */}
           <div className={styles.formSide}>
             <div className={styles.formHeader}>
               <div className={styles.headerLeft}>
@@ -567,44 +559,45 @@ export function AuthModal({
                   <button
                     type="button"
                     className={styles.backButton}
-                    onClick={() => {
-                      setError('');
-                      setStep(backTarget[step]!);
-                    }}
+                    onClick={() => { setError(''); setStep(backTarget[step]!); }}
                   >
                     <ArrowLeft size={14} />
                     Назад
                   </button>
                 )}
               </div>
-              <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Закрыть">
-                <X size={16} />
-              </button>
+              {/* Не показываем кнопку закрытия на set-password: обязательный шаг */}
+              {step !== 'set-password' && (
+                <button
+                  type="button"
+                  className={styles.closeButton}
+                  onClick={onClose}
+                  aria-label="Закрыть"
+                >
+                  <X size={16} />
+                </button>
+              )}
             </div>
 
             <div className={styles.formViewport}>
+              {/* ── PIN step ── */}
               {step === 'pin' && (
                 <PinStep
                   onSuccess={onAuthSuccess}
-                  onUsePassword={() => {
-                    setError('');
-                    setStep('login');
-                  }}
+                  onUsePassword={() => { setError(''); setStep('login'); }}
                 />
               )}
 
+              {/* ── Login step ── */}
               {step === 'login' && (
                 <form
                   className={styles.stepContent}
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    void submitLogin();
-                  }}
+                  onSubmit={(e) => { e.preventDefault(); void submitLogin(); }}
                 >
                   <div className={styles.stepHeader}>
                     <h2 className={styles.title}>Вход</h2>
                     <p className={styles.subtitle}>
-                      Аккаунт компании или сотрудника.
+                      Войдите по email или номеру телефона.
                     </p>
                     {inviteContext && (
                       <div className={styles.pinInfo}>
@@ -616,20 +609,25 @@ export function AuthModal({
                   <div className={styles.formFields}>
                     <input
                       className={styles.input}
-                      value={loginEmail}
-                      onChange={(event) => {
-                        setLoginEmail(event.target.value);
+                      value={loginIdentifier}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        // Если это похоже на телефон — форматируем, иначе оставляем как есть
+                        if (looksLikePhone(v)) {
+                          setLoginIdentifier(formatKazakhPhoneInput(v));
+                        } else {
+                          setLoginIdentifier(v);
+                        }
                         setError('');
                       }}
-                      placeholder="Email"
-                      autoComplete="email"
+                      placeholder="Email или номер телефона"
+                      autoComplete="username"
+                      inputMode="email"
+                      type="text"
                     />
                     <PasswordField
                       value={loginPassword}
-                      onChange={(value) => {
-                        setLoginPassword(value);
-                        setError('');
-                      }}
+                      onChange={(v) => { setLoginPassword(v); setError(''); }}
                       placeholder="Пароль"
                       autoComplete="current-password"
                     />
@@ -648,10 +646,7 @@ export function AuthModal({
                       <button
                         type="button"
                         className={styles.pinButton}
-                        onClick={() => {
-                          setError('');
-                          setStep('pin');
-                        }}
+                        onClick={() => { setError(''); setStep('pin'); }}
                       >
                         <KeyRound size={15} />
                         Быстрый вход по PIN-коду
@@ -660,162 +655,28 @@ export function AuthModal({
                   )}
 
                   <div className={styles.footerRow}>
-                    <span>Нет аккаунта?</span>
+                    <span>Регистрируете компанию?</span>
                     <button
                       type="button"
                       className={styles.linkButton}
-                      onClick={() => {
-                        setError('');
-                        setStep('choose-type');
-                      }}
+                      onClick={() => { setError(''); setStep('company'); }}
                     >
-                      Зарегистрироваться
+                      Создать компанию
                     </button>
                   </div>
                 </form>
               )}
 
-              {step === 'choose-type' && (
-                <div className={styles.stepContent}>
-                  <div className={styles.stepHeader}>
-                    <h2 className={styles.title}>Продолжить как</h2>
-                    <p className={styles.subtitle}>
-                      Выберите тип аккаунта.
-                    </p>
-                  </div>
-
-                  <div className={styles.typeGrid}>
-                    <button
-                      type="button"
-                      className={`${styles.typeCard} ${styles.typeCardPrimary}`}
-                      onClick={() => {
-                        setError('');
-                        setStep('company');
-                      }}
-                    >
-                      <span className={styles.typeIcon}>
-                        <Building2 size={18} />
-                      </span>
-                      <div className={styles.typeCardBody}>
-                        <span className={styles.typeLabel}>
-                          <span>Компания</span>
-                          <ArrowUpRight size={15} />
-                        </span>
-                        <span className={styles.typeDesc}>
-                          Создать компанию и сразу получить доступ владельца.
-                        </span>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      className={`${styles.typeCard} ${styles.typeCardSecondary}`}
-                      onClick={() => {
-                        setError('');
-                        setStep('employee');
-                      }}
-                    >
-                      <span className={styles.typeIcon}>
-                        <Blocks size={18} />
-                      </span>
-                      <div className={styles.typeCardBody}>
-                        <span className={styles.typeLabel}>
-                          <span>Сотрудник</span>
-                          <ArrowUpRight size={15} />
-                        </span>
-                        <span className={styles.typeDesc}>
-                          Создать профиль и подключиться к компании.
-                        </span>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {step === 'employee' && (
-                <form
-                  className={styles.stepContent}
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    void submitEmployeeRegistration();
-                  }}
-                >
-                  <div className={styles.stepHeader}>
-                    <h2 className={styles.title}>Регистрация сотрудника</h2>
-                    <p className={styles.subtitle}>
-                      Профиль создаётся сразу. Доступ к данным компании откроется после подключения.
-                    </p>
-                    {inviteContext && (
-                      <div className={styles.pinInfo}>
-                        Инвайт уже привяжет аккаунт к компании «{inviteContext.companyName}».
-                      </div>
-                    )}
-                  </div>
-
-                  <div className={styles.formFields}>
-                    <input
-                      className={styles.input}
-                      value={employeeName}
-                      onChange={(event) => {
-                        setEmployeeName(event.target.value);
-                        setError('');
-                      }}
-                      placeholder="ФИО"
-                      autoComplete="name"
-                    />
-                    <input
-                      className={styles.input}
-                      value={employeeEmail}
-                      onChange={(event) => {
-                        setEmployeeEmail(event.target.value);
-                        setError('');
-                      }}
-                      placeholder="Email"
-                      autoComplete="email"
-                    />
-                    <input
-                      className={styles.input}
-                      value={employeePhone}
-                      onChange={(event) => {
-                        setEmployeePhone(formatKazakhPhoneInput(event.target.value));
-                        setError('');
-                      }}
-                      placeholder="+7 (___) ___-__-__"
-                      autoComplete="tel"
-                      inputMode="tel"
-                    />
-                    <PasswordField
-                      value={employeePassword}
-                      onChange={(value) => {
-                        setEmployeePassword(value);
-                        setError('');
-                      }}
-                      placeholder="Пароль"
-                      autoComplete="new-password"
-                    />
-                  </div>
-
-                  {error && <div className={styles.errorMessage}>{error}</div>}
-
-                  <button type="submit" className={styles.primaryButton} disabled={loading}>
-                    <UserRoundPlus size={16} />
-                    {loading ? 'Создаём аккаунт...' : 'Создать аккаунт сотрудника'}
-                  </button>
-                </form>
-              )}
-
+              {/* ── Company registration step ── */}
               {step === 'company' && (
                 <form
                   className={styles.stepContent}
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    void submitCompanyRegistration();
-                  }}
+                  onSubmit={(e) => { e.preventDefault(); void submitCompanyRegistration(); }}
                 >
                   <div className={styles.stepHeader}>
                     <h2 className={styles.title}>Регистрация компании</h2>
                     <p className={styles.subtitle}>
-                      Компания создаётся сразу с доступом владельца.
+                      Компания создаётся сразу с правами руководителя.
                     </p>
                   </div>
 
@@ -823,50 +684,43 @@ export function AuthModal({
                     <input
                       className={styles.input}
                       value={companyName}
-                      onChange={(event) => {
-                        setCompanyName(event.target.value);
-                        setError('');
-                      }}
-                      placeholder="Название компании"
+                      onChange={(e) => { setCompanyName(e.target.value); setError(''); }}
+                      placeholder="Название компании *"
                     />
                     <input
                       className={styles.input}
                       value={companyOwnerName}
-                      onChange={(event) => {
-                        setCompanyOwnerName(event.target.value);
-                        setError('');
-                      }}
-                      placeholder="Имя владельца"
+                      onChange={(e) => { setCompanyOwnerName(e.target.value); setError(''); }}
+                      placeholder="ФИО руководителя *"
                       autoComplete="name"
                     />
                     <input
                       className={styles.input}
                       value={companyEmail}
-                      onChange={(event) => {
-                        setCompanyEmail(event.target.value);
-                        setError('');
-                      }}
-                      placeholder="Email владельца"
+                      onChange={(e) => { setCompanyEmail(e.target.value); setError(''); }}
+                      placeholder="Email *"
                       autoComplete="email"
+                      inputMode="email"
+                      type="email"
                     />
                     <input
                       className={styles.input}
                       value={companyPhone}
-                      onChange={(event) => {
-                        setCompanyPhone(formatKazakhPhoneInput(event.target.value));
-                        setError('');
-                      }}
+                      onChange={(e) => { setCompanyPhone(formatKazakhPhoneInput(e.target.value)); setError(''); }}
                       placeholder="+7 (___) ___-__-__"
                       autoComplete="tel"
                       inputMode="tel"
                     />
                     <PasswordField
                       value={companyPassword}
-                      onChange={(value) => {
-                        setCompanyPassword(value);
-                        setError('');
-                      }}
-                      placeholder="Пароль"
+                      onChange={(v) => { setCompanyPassword(v); setError(''); }}
+                      placeholder="Пароль *"
+                      autoComplete="new-password"
+                    />
+                    <PasswordField
+                      value={companyPasswordConfirm}
+                      onChange={(v) => { setCompanyPasswordConfirm(v); setError(''); }}
+                      placeholder="Подтверждение пароля *"
                       autoComplete="new-password"
                     />
                   </div>
@@ -878,6 +732,17 @@ export function AuthModal({
                     {loading ? 'Создаём компанию...' : 'Создать компанию'}
                   </button>
                 </form>
+              )}
+
+              {/* ── Set-password step (первый вход сотрудника) ── */}
+              {step === 'set-password' && (
+                <div className={styles.stepContent}>
+                  <SetPasswordStep
+                    tempToken={firstLoginTempToken}
+                    userName={firstLoginUserName}
+                    onSuccess={applySession}
+                  />
+                </div>
               )}
             </div>
           </div>
