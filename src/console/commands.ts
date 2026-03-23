@@ -527,13 +527,6 @@ export async function executeConsoleCommand(input: string): Promise<ConsoleComma
     }
 
     case 'access': {
-      if (!canUseLocalConsoleAccess()) {
-        return {
-          level: 'error',
-          message: 'Service access unavailable — not a DEV build.',
-        };
-      }
-
       const password = parsed.args[0] ?? '';
       if (!password) {
         return {
