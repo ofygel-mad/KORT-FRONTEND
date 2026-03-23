@@ -10,6 +10,7 @@ const PASSWORD_CHANGED_AT_KEY = 'kort.console:admin-password-changed-at:v1';
 const ACTIVE_SESSION_KEY = 'kort.console:service-session-active:v1';
 const DEFAULT_CONSOLE_PASSWORD = '1234';
 const PBKDF2_ITERATIONS = 210_000;
+const SERVICE_ACCESS_URL = `${(import.meta.env.VITE_API_BASE_URL ?? '/api/v1').replace(/\/+$/, '')}/service/access/`;
 
 type Pbkdf2PasswordRecord = {
   version: 'pbkdf2-sha256-v1';
@@ -179,7 +180,7 @@ export type ServiceAccessResult =
 
 export async function requestBackendServiceSession(password: string): Promise<ServiceAccessResult> {
   try {
-    const response = await fetch('/api/v1/service/access', {
+    const response = await fetch(SERVICE_ACCESS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password }),

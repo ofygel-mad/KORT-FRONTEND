@@ -81,9 +81,11 @@ const BRAND_CAROUSEL = [
 
 function readAuthError(cause: unknown, fallback: string) {
   const message = readApiErrorMessage(cause, '').trim();
-  if (message) return message;
-
   const status = readApiErrorStatus(cause);
+  if (!status && message.toLowerCase() === 'network error') {
+    return 'Сервис авторизации недоступен. Проверьте подключение frontend к backend.';
+  }
+  if (message) return message;
   if (status === 401) return 'Неверный логин или пароль.';
   if (status === 409) return 'Этот email уже занят.';
   if (status === 400) return 'Проверьте заполнение полей и попробуйте ещё раз.';
@@ -725,12 +727,14 @@ export function AuthModal({ open, onClose, onAuthSuccess, initialStep }: AuthMod
                     />
                   </div>
 
-                  {error && <div className={styles.errorMessage}>{error}</div>}
+                  <div className={styles.stepActions}>
+                    {error && <div className={styles.errorMessage}>{error}</div>}
 
-                  <button type="submit" className={styles.primaryButton} disabled={loading}>
-                    <Building2 size={16} />
-                    {loading ? 'Создаём компанию...' : 'Создать компанию'}
-                  </button>
+                    <button type="submit" className={styles.primaryButton} disabled={loading}>
+                      <Building2 size={16} />
+                      {loading ? 'Создаём компанию...' : 'Создать компанию'}
+                    </button>
+                  </div>
                 </form>
               )}
 

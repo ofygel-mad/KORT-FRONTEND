@@ -828,6 +828,27 @@
   gap: 12px;
 }
 
+.stepActions {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 12px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--brand-surface-3) 86%, transparent) 32%,
+    var(--brand-surface-3) 100%
+  );
+}
+
+.stepActions .primaryButton {
+  position: static;
+  bottom: auto;
+  margin-top: 0;
+}
+
 .input {
   width: 100%;
   min-height: 50px;

@@ -1,0 +1,58 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e8]: KORT
+      - generic [ref=e9]:
+        - article [ref=e10]:
+          - generic [ref=e11]:
+            - generic [ref=e12]:
+              - img [ref=e13]
+              - text: Доступ
+            - generic [ref=e16]: 02 / 03
+          - generic [ref=e17]:
+            - generic [ref=e28]:
+              - generic [ref=e29]: роли
+              - strong [ref=e30]: owner / admin / team
+            - generic [ref=e31]:
+              - generic [ref=e32]: контакты
+              - strong [ref=e33]: единая структура
+          - generic [ref=e34]:
+            - strong [ref=e35]: Роли и связи читаются с первого взгляда
+            - paragraph [ref=e36]: Команда, права и контакты собраны в одной структуре.
+        - generic "Навигация по карточкам" [ref=e37]:
+          - button "Показать карточку 1" [ref=e38] [cursor=pointer]
+          - button "Показать карточку 2" [ref=e39] [cursor=pointer]
+          - button "Показать карточку 3" [ref=e40] [cursor=pointer]
+    - generic [ref=e41]:
+      - generic [ref=e42]:
+        - button "Назад" [ref=e44] [cursor=pointer]:
+          - img [ref=e45]
+          - text: Назад
+        - button "Закрыть" [ref=e47] [cursor=pointer]:
+          - img [ref=e48]
+      - generic [ref=e52]:
+        - generic [ref=e53]:
+          - heading "Регистрация компании" [level=2] [ref=e54]
+          - paragraph [ref=e55]: Компания создаётся сразу с правами руководителя.
+        - generic [ref=e56]:
+          - textbox "Название компании *" [ref=e57]: Тестовая компания
+          - textbox "ФИО руководителя *" [ref=e58]: Тестовый Руководитель
+          - textbox "Email *" [ref=e59]: owner+enter@demo.kz
+          - textbox "+7 (___) ___-__-__" [ref=e60]: +7 (701) 555-44-33
+          - generic [ref=e61]:
+            - textbox "Пароль *" [ref=e62]: superpass
+            - button "Показать пароль" [ref=e63] [cursor=pointer]:
+              - img [ref=e64]
+          - generic [ref=e67]:
+            - textbox "Подтверждение пароля *" [active] [ref=e68]: superpass
+            - button "Показать пароль" [ref=e69] [cursor=pointer]:
+              - img [ref=e70]
+        - generic [ref=e73]: Network Error
+        - button "Создать компанию" [ref=e74] [cursor=pointer]:
+          - img [ref=e75]
+          - text: Создать компанию
+  - region "Notifications alt+T"
+```
