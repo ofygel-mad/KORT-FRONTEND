@@ -8,7 +8,6 @@ import {
   Factory,
   KeyRound,
   ShieldCheck,
-  UserRoundPlus,
   Workflow,
   X,
 } from 'lucide-react';
@@ -43,7 +42,6 @@ import styles from './AuthModal.module.css';
  */
 type Step = 'login' | 'pin' | 'company' | 'set-password';
 type BrandScene = 'network' | 'briefing' | 'flow';
-const COMPANY_REGISTRATION_FORM_ID = 'auth-company-registration-form';
 
 interface AuthModalProps {
   open: boolean;
@@ -583,7 +581,7 @@ export function AuthModal({ open, onClose, onAuthSuccess, initialStep }: AuthMod
               )}
             </div>
 
-            <div className={`${styles.formViewport} ${step === 'company' ? styles.formViewportWithFooter : ''}`}>
+            <div className={styles.formViewport}>
               {/* ── PIN step ── */}
               {step === 'pin' && (
                 <PinStep
@@ -674,7 +672,6 @@ export function AuthModal({ open, onClose, onAuthSuccess, initialStep }: AuthMod
               {/* ── Company registration step ── */}
               {step === 'company' && (
                 <form
-                  id={COMPANY_REGISTRATION_FORM_ID}
                   className={`${styles.stepContent} ${styles.companyStepContent}`}
                   onSubmit={(e) => { e.preventDefault(); void submitCompanyRegistration(); }}
                 >
@@ -729,6 +726,19 @@ export function AuthModal({ open, onClose, onAuthSuccess, initialStep }: AuthMod
                       autoComplete="new-password"
                     />
                   </div>
+
+                  <div className={styles.companyStepActions}>
+                    {error && <div className={styles.errorMessage}>{error}</div>}
+
+                    <button
+                      type="submit"
+                      className={styles.primaryButton}
+                      disabled={loading}
+                    >
+                      <Building2 size={16} />
+                      {loading ? 'Создаём компанию...' : 'Создать компанию'}
+                    </button>
+                  </div>
                 </form>
               )}
 
@@ -744,21 +754,6 @@ export function AuthModal({ open, onClose, onAuthSuccess, initialStep }: AuthMod
               )}
             </div>
 
-            {step === 'company' && (
-              <div className={styles.formFooter}>
-                {error && <div className={styles.errorMessage}>{error}</div>}
-
-                <button
-                  type="submit"
-                  form={COMPANY_REGISTRATION_FORM_ID}
-                  className={styles.primaryButton}
-                  disabled={loading}
-                >
-                  <Building2 size={16} />
-                  {loading ? 'Создаём компанию...' : 'Создать компанию'}
-                </button>
-              </div>
-            )}
           </div>
         </motion.div>
       </motion.div>

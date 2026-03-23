@@ -789,10 +789,6 @@
   overscroll-behavior: contain;
 }
 
-.formViewportWithFooter {
-  padding-bottom: 0;
-}
-
 .stepContent {
   padding: 18px 28px 28px;
   display: flex;
@@ -803,7 +799,7 @@
 }
 
 .companyStepContent {
-  padding-bottom: 18px;
+  padding-bottom: 0;
 }
 
 .stepHeader {
@@ -836,21 +832,23 @@
   gap: 12px;
 }
 
-.formFooter {
-  flex-shrink: 0;
+.companyStepActions {
+  position: sticky;
+  bottom: -1px;
   display: grid;
   gap: 12px;
-  padding: 14px 28px 24px;
-  border-top: 1px solid color-mix(in srgb, var(--brand-panel-border) 82%, transparent);
+  margin-top: auto;
+  padding: 18px 0 6px;
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--brand-surface-3) 0%, transparent) 0%,
-    color-mix(in srgb, var(--brand-surface-3) 78%, transparent) 22%,
+    color-mix(in srgb, var(--brand-surface-3) 84%, transparent) 28%,
     var(--brand-surface-3) 100%
   );
+  z-index: 1;
 }
 
-.formFooter .primaryButton {
+.companyStepActions .primaryButton {
   position: static;
   bottom: auto;
   margin-top: 0;
@@ -1272,8 +1270,8 @@
     padding: 14px 20px 22px;
   }
 
-  .formFooter {
-    padding: 12px 20px 20px;
+  .companyStepActions {
+    padding: 16px 0 4px;
   }
 }
 
@@ -1294,8 +1292,8 @@
     padding: 20px 16px;
   }
 
-  .formFooter {
-    padding: 12px 16px 16px;
+  .companyStepActions {
+    padding: 14px 0 2px;
   }
 
   .brandSignals,

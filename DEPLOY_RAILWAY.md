@@ -262,10 +262,6 @@ access "kortdev1234"
 
 Если база пустая, backend сам создаст:
 
-- owner: `admin@kort.local`
-- пароль owner: `demo1234`
-- компанию: `Demo Company`
-- slug компании: `demo-company`
 
 То есть после первого сервисного входа у тебя будет сразу 2 способа зайти:
 
@@ -833,3 +829,10 @@ VITE_API_BASE_URL=https://<backend-domain>/api/v1
 - Railway domains: https://docs.railway.com/networking/domains/working-with-domains
 - Railway config as code: https://docs.railway.com/config-as-code/reference
 - Railway projects/services: https://docs.railway.com/guides/projects
+
+
+
+- owner: `admin@kort.local`
+- пароль owner: `demo1234`
+- компанию: `Demo Company`
+- slug компании: `demo-company`

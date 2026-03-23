@@ -32,6 +32,7 @@ export default function ChapanOrdersPage() {
   const [payFilter, setPayFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const deferred = useDeferredValue(search);
+  const hasActiveFilters = Boolean(search || statusFilter || payFilter);
 
   const { data, isLoading, isError } = useOrders({
     search: deferred || undefined,
@@ -40,6 +41,11 @@ export default function ChapanOrdersPage() {
     limit: 100,
   });
   const orders: ChapanOrder[] = data?.results ?? [];
+  const showToolbarCreateButton =
+    isLoading
+    || isError
+    || hasActiveFilters
+    || (data?.count ?? 0) > 0;
 
   return (
     <div className={styles.root}>
@@ -53,9 +59,11 @@ export default function ChapanOrdersPage() {
             <SlidersHorizontal size={13} /><span>Фильтры</span>
             {(statusFilter || payFilter) && <span className={styles.filterDot} />}
           </button>
-          <button className={styles.newBtn} onClick={() => navigate('/workzone/chapan/orders/new')}>
-            <Plus size={14} /> Новый заказ
-          </button>
+          {showToolbarCreateButton && (
+            <button className={styles.newBtn} onClick={() => navigate('/workzone/chapan/orders/new')}>
+              <Plus size={14} /> Новый заказ
+            </button>
+          )}
         </div>
       </div>
 
@@ -88,9 +96,9 @@ export default function ChapanOrdersPage() {
       {!isLoading && !isError && orders.length === 0 && (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>📋</div>
-          <div className={styles.emptyTitle}>{search || statusFilter || payFilter ? 'Ничего не найдено' : 'Заказов пока нет'}</div>
-          <div className={styles.emptyText}>{search || statusFilter || payFilter ? 'Измените фильтры' : 'Создайте первый заказ'}</div>
-          {!search && !statusFilter && !payFilter && (
+          <div className={styles.emptyTitle}>{hasActiveFilters ? 'Ничего не найдено' : 'Заказов пока нет'}</div>
+          <div className={styles.emptyText}>{hasActiveFilters ? 'Измените фильтры' : 'Создайте первый заказ'}</div>
+          {!hasActiveFilters && (
             <button className={styles.emptyAction} onClick={() => navigate('/workzone/chapan/orders/new')}>+ Создать заказ</button>
           )}
         </div>
