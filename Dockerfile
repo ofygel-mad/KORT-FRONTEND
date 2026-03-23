@@ -17,15 +17,16 @@ RUN npm run build
 # ── Stage 2: Serve ───────────────────────────────────────────────────────────
 FROM nginx:1.27-alpine
 
-# nginx native template support — auto-runs envsubst on *.template files at startup
-COPY docker/04-normalize-backend-url.envsh /docker-entrypoint.d/04-normalize-backend-url.envsh
+RUN apk add --no-cache gettext
+
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY docker/start-nginx.sh /usr/local/bin/start-nginx.sh
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Safe fallback: keeps nginx bootable even if BACKEND_URL was not set yet.
-# In Railway production, override BACKEND_URL with the real backend origin.
-ENV PORT=80
+RUN chmod +x /usr/local/bin/start-nginx.sh
+
+ENV PORT=8080
 ENV BACKEND_URL=http://127.0.0.1:8000
 
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+EXPOSE 8080
+CMD ["/usr/local/bin/start-nginx.sh"]
