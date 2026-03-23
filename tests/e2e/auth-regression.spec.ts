@@ -20,6 +20,28 @@ test('company registration submits on Enter from password confirmation', async (
   await expect(page).toHaveURL(/\/onboarding|\/$/);
 });
 
+test('company registration footer stays visible on short desktop viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 1365, height: 768 });
+  await preparePage(page);
+  await page.goto('/auth/register');
+
+  const fields = page.locator('form input');
+  await expect(fields).toHaveCount(6);
+
+  await fields.nth(0).fill('Тест');
+  await fields.nth(1).fill('Жасарал Асхат');
+  await fields.nth(2).fill('ofygel@gmail.com');
+  await fields.nth(3).fill('+7 747 456-86-61');
+  await fields.nth(4).fill('12345678');
+  await fields.nth(5).fill('12345679');
+
+  const submitButton = page.getByRole('button', { name: 'Создать компанию' });
+  await expect(submitButton).toBeInViewport();
+  await submitButton.click();
+  await expect(page.getByText('Пароли не совпадают.')).toBeInViewport();
+  await expect(submitButton).toBeInViewport();
+});
+
 test('mock login rejects invalid password', async ({ page }) => {
   await preparePage(page);
   await page.goto('/auth/login');

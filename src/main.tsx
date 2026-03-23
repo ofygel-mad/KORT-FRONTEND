@@ -144,7 +144,25 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<App />);
 const nav = getNavigator();
 const win = getWindow();
 if (isBrowser && nav && 'serviceWorker' in nav && import.meta.env.PROD && win) {
+  const clearLegacyServiceWorkers = async () => {
+    try {
+      const registrations = await nav.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+    } catch {
+      // ignore service worker cleanup failures
+    }
+
+    if ('caches' in win) {
+      try {
+        const cacheKeys = await win.caches.keys();
+        await Promise.all(cacheKeys.map((cacheKey) => win.caches.delete(cacheKey)));
+      } catch {
+        // ignore cache cleanup failures
+      }
+    }
+  };
+
   win.addEventListener('load', () => {
-    nav.serviceWorker.register('/sw.js').catch(() => {});
+    void clearLegacyServiceWorkers();
   });
 }
