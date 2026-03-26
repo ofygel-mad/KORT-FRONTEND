@@ -1,26 +1,8 @@
-# Dependencies
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# Build output
 dist/
-build/
+.env
+*.db
+*.db-journal
 
-# OS files
-.DS_Store
-Thumbs.db
-
-# Editor
-.vscode/
-.idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
+# DB reports — contain raw data including password hashes and tokens, NEVER commit
+../_database-report/
