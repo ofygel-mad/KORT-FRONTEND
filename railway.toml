@@ -2,7 +2,6 @@
 builder = "dockerfile"
 
 [deploy]
-startCommand = "npx serve -s dist -l $PORT"
 healthcheckPath = "/healthz"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"
