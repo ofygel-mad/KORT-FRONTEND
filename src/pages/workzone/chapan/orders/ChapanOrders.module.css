@@ -669,3 +669,12 @@
   border: 1px solid rgba(239, 68, 68, 0.22);
   white-space: nowrap;
 }
+
+@media (max-width: 767px) {
+  .root { padding: 12px; gap: 12px; }
+  .searchWrap { min-width: 0; flex: 1; }
+  .toolbarRight { flex-shrink: 0; gap: 6px; }
+  .filterGroup { min-width: 110px; }
+  /* Cards already responsive via auto-fill; ensure single column on smallest screens */
+  .grid { grid-template-columns: 1fr; }
+}
