@@ -159,22 +159,33 @@ export default defineConfig({
   },
   preview: {
     allowedHosts: true,
+    proxy: {
+      '/api': {
+        target: process.env.VITE_PROXY_TARGET || 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+    },
   },
   test: {
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.ts',
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
-    exclude: ['tests/e2e/**', '**/node_modules/**', 'dist/**'],
+    exclude: ['src/**/*.e2e.{test,spec}.{ts,tsx}', 'tests/e2e/**', '**/node_modules/**', 'dist/**'],
+    isolate: false,
+    pool: 'forks',
     poolOptions: {
       forks: {
         singleFork: true,
       },
     },
-    server: {
-      deps: {
-        inline: [/./],
-      },
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'src/test/',
+      ],
     },
   },
 });

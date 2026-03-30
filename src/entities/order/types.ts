@@ -55,6 +55,7 @@ export interface ChapanOrder {
   payments: OrderPayment[];
   activities: OrderActivity[];
   transfer: OrderTransfer | null;
+  attachments?: OrderAttachment[];
   // Included only in getById response:
   invoiceOrders?: Array<{
     id: string;
@@ -104,6 +105,10 @@ export interface ProductionTask {
   notes: string | null;
   startedAt: string | null;
   completedAt: string | null;
+  // From orderItem relation (Sprint 8):
+  color?: string | null;
+  gender?: string | null;
+  length?: string | null;
   // From order relation:
   order: {
     id: string;
@@ -119,6 +124,18 @@ export interface ProductionTask {
 
 export type ProductionStatus =
   | 'queued' | 'in_progress' | 'done';
+
+export interface OrderAttachment {
+  id: string;
+  orderId: string;
+  orgId: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  storagePath: string;
+  uploadedBy: string;
+  createdAt: string;
+}
 
 export interface OrderPayment {
   id: string;
@@ -205,6 +222,18 @@ export interface UpdateOrderDto {
   priority?: Priority;
   urgency?: Urgency;
   isDemandingClient?: boolean;
+  // Address / delivery
+  city?: string;
+  streetAddress?: string;
+  postalCode?: string;
+  deliveryType?: string;
+  source?: string;
+  orderDate?: string;
+  // Financial
+  orderDiscount?: number;
+  deliveryFee?: number;
+  bankCommissionPercent?: number;
+  bankCommissionAmount?: number;
   items?: CreateOrderItemDto[];
 }
 
@@ -222,6 +251,7 @@ export interface ChapanCatalogs {
   fabricCatalog: string[];
   sizeCatalog: string[];
   workers: string[];
+  paymentMethodCatalog: string[];   // Sprint 4: user-managed payment methods
 }
 
 export interface ChapanProfile {
