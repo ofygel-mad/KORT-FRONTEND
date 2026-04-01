@@ -259,14 +259,18 @@
 .main {
   flex: 1;
   min-width: 0;
+  height: calc(100vh - 50px);
+  height: calc(100svh - 50px);
   height: calc(100dvh - 50px);
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y pinch-zoom;
   background: transparent;
   background-image:
     linear-gradient(rgba(16,24,40,0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(16,24,40,0.03) 1px, transparent 1px);
   background-size: 44px 44px;
-  overscroll-behavior: contain;
+  overscroll-behavior: auto;
 }
 
 @media (max-width: 768px) {

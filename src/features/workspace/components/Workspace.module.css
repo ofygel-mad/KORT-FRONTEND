@@ -195,7 +195,9 @@
   transform: translateY(-8px) scale(0.98);
   pointer-events: none;
   overflow-y: auto;
-  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: auto;
+  touch-action: pan-y pinch-zoom;
   scrollbar-gutter: stable;
   transition: opacity 180ms ease, transform 180ms ease;
 }
@@ -989,7 +991,7 @@
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   gap: 0;
-  overflow: clip;
+  overflow: hidden;
 }
 
 .menuHeader {
@@ -1032,6 +1034,9 @@
   gap: 6px;
   min-height: 0;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: auto;
+  touch-action: pan-y pinch-zoom;
   padding: 1px 8px 2px 1px;
   scrollbar-width: thin;
   scrollbar-color: var(--border-default) transparent;
@@ -1502,6 +1507,9 @@
 .spotlightList {
   max-height: 380px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: auto;
+  touch-action: pan-y pinch-zoom;
   padding: 6px;
   scrollbar-width: thin;
   scrollbar-color: rgba(255,255,255,0.1) transparent;
