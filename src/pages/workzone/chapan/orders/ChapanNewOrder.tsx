@@ -426,7 +426,8 @@ export default function ChapanNewOrderPage() {
   const deliveryOptions       = buildDeliveryOptions();
 
   useEffect(() => {
-    if (paymentMethod === 'kaspi_qr') {
+    // Guard against stale local drafts created before Kaspi QR was removed.
+    if ((paymentMethod as string | undefined) === 'kaspi_qr') {
       setValue('paymentMethod', undefined);
     }
     if (paymentBreakdownWatch?.kaspi_qr !== undefined) {
