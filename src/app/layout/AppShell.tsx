@@ -6,11 +6,14 @@ import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { MobileNav } from './MobileNav';
 import { CommandPalette } from '../../widgets/command-palette/CommandPalette';
+import { FloatingChatbar } from '../../features/chat/FloatingChatbar';
+import { useChatSocket } from '../../features/chat/useChatSocket';
 import { useCommandPalette } from '../../shared/stores/commandPalette';
 import { useKeyboardShortcuts } from '../../shared/hooks/useKeyboardShortcuts';
 import { ShortcutsModal } from '../../shared/ui/ShortcutsModal';
 import { useIsMobile } from '../../shared/hooks/useIsMobile';
 import { useDevicePerformance } from '../../shared/hooks/useDevicePerformance';
+import { useViewportProfile } from '../../shared/hooks/useViewportProfile';
 import { useAuthStore } from '../../shared/stores/auth';
 import { pageTransition } from '../../shared/motion/presets';
 import { addDocumentListener } from '../../shared/lib/browser';
@@ -40,6 +43,7 @@ export function AppShell() {
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const performance = useDevicePerformance();
+  useViewportProfile();
 
   // Reactively read the resolved data-theme attribute (kept in sync by applyTheme)
   const resolvedTheme = useSyncExternalStore(
@@ -73,6 +77,7 @@ export function AppShell() {
   }, [toggle]);
 
   useKeyboardShortcuts({ '/': toggle, '?': () => setShortcutsOpen(true) });
+  useChatSocket();
 
   if (!user) {
     // Keep the outlet alive so nested auth redirects can run on "/" when the
@@ -94,7 +99,7 @@ export function AppShell() {
 
       <div className={styles.content}>
         <Topbar chromeTone={chromeTone} />
-        <main className={styles.main}>
+        <main className={styles.main} data-app-scroll="true">
           {performance.preferMinimalMotion ? (
             <div key={location.pathname} className={styles.routeViewport}>
               <Outlet />
@@ -119,6 +124,7 @@ export function AppShell() {
       {isMobile && <MobileNav />}
       {isOpen && <CommandPalette />}
       <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <FloatingChatbar />
     </div>
   );
 }

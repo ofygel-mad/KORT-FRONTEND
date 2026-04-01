@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Smartphone,
   Sun,
+  User,
   Users,
   Zap,
 } from 'lucide-react';
@@ -31,6 +32,7 @@ import { useDocumentTitle } from '../../shared/hooks/useDocumentTitle';
 import { getDeviceId, usePinStore } from '../../shared/stores/pin';
 import { useAuthStore } from '../../shared/stores/auth';
 import { useUIStore, type Theme, type ThemePack } from '../../shared/stores/ui';
+import { useProfileStore, MOODS } from '../../shared/stores/profile';
 import { Badge } from '../../shared/ui/Badge';
 import { Button } from '../../shared/ui/Button';
 import { CompanyAccessGate } from '../../shared/ui/CompanyAccessGate';
@@ -72,6 +74,7 @@ interface OrgData {
 }
 
 type SectionKey =
+  | 'profile'
   | 'organization'
   | 'company-access'
   | 'appearance'
@@ -91,6 +94,7 @@ const ACCESS_LABELS: Record<string, string> = {
 };
 
 const SECTIONS: Array<{ key: SectionKey; label: string; icon: JSX.Element }> = [
+  { key: 'profile', label: 'Профиль', icon: <User size={15} /> },
   { key: 'organization', label: 'Организация', icon: <Building2 size={15} /> },
   { key: 'company-access', label: 'Компания и доступ', icon: <Users size={15} /> },
   { key: 'appearance', label: 'Оформление', icon: <MonitorCog size={15} /> },
@@ -554,7 +558,318 @@ function AppearanceSection() {
   );
 }
 
+function OwnerCredentialsCard() {
+  const clearAuth = useAuthStore((state) => state.clearAuth);
+  const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+
+  const [newEmail, setNewEmail] = useState('');
+  const [emailCurrentPassword, setEmailCurrentPassword] = useState('');
+  const [emailLoading, setEmailLoading] = useState(false);
+
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  async function handleChangeEmail() {
+    if (!newEmail.trim() || !emailCurrentPassword.trim()) {
+      toast.error('Заполните все поля.');
+      return;
+    }
+    setEmailLoading(true);
+    try {
+      await api.post('/users/me/change-email/', {
+        new_email: newEmail.trim().toLowerCase(),
+        current_password: emailCurrentPassword,
+      });
+      toast.success('Email изменён. Войдите заново с новым адресом.');
+      clearAuth();
+      navigate('/auth/login', { replace: true });
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? 'Не удалось изменить email.');
+    } finally {
+      setEmailLoading(false);
+    }
+  }
+
+  async function handleChangePassword() {
+    if (!currentPassword.trim() || !newPassword.trim() || !newPasswordConfirm.trim()) {
+      toast.error('Заполните все поля.');
+      return;
+    }
+    if (newPassword !== newPasswordConfirm) {
+      toast.error('Пароли не совпадают.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error('Пароль должен содержать не менее 6 символов.');
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      await api.post('/auth/change-password/', {
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
+      toast.success('Пароль изменён. Войдите заново.');
+      clearAuth();
+      navigate('/auth/login', { replace: true });
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? 'Не удалось изменить пароль.');
+    } finally {
+      setPasswordLoading(false);
+    }
+  }
+
+  return (
+    <div className={s.section}>
+      <div className={s.sectionHeader}>
+        <div>
+          <div className={s.sectionTitle}>Учётная запись руководителя</div>
+          <div className={s.sectionSubtitle}>
+            После смены данных сессия владельца завершится. Сотрудники не будут выброшены из системы.
+          </div>
+        </div>
+      </div>
+      <div className={s.sectionBody}>
+        {/* ── Смена email ── */}
+        <div className={s.securityCard}>
+          <div className={s.securityCardBody}>
+            <div className={s.securityCardTitle}>Email</div>
+            <div className={s.securityCardMeta}>{user?.email ?? '—'}</div>
+            <div className={s.securityActions}>
+              <button className={s.securityBtn} onClick={() => { setShowEmailForm((v) => !v); setShowPasswordForm(false); }}>
+                Изменить email
+              </button>
+            </div>
+          </div>
+        </div>
+        {showEmailForm && (
+          <div className={s.pinSetupCard}>
+            <div className={s.pinSetupFields}>
+              <div className={s.field}>
+                <label className={s.fieldLabel}>Новый email</label>
+                <input
+                  className="kort-input"
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="новый@email.com"
+                  autoComplete="email"
+                />
+              </div>
+              <div className={s.field}>
+                <label className={s.fieldLabel}>Текущий пароль для подтверждения</label>
+                <input
+                  className="kort-input"
+                  type="password"
+                  value={emailCurrentPassword}
+                  onChange={(e) => setEmailCurrentPassword(e.target.value)}
+                  placeholder="Введите текущий пароль"
+                  autoComplete="current-password"
+                />
+              </div>
+            </div>
+            <div className={s.pinSetupActions}>
+              <button className={s.securityBtn} disabled={emailLoading} onClick={() => void handleChangeEmail()}>
+                {emailLoading ? 'Сохраняем...' : 'Сохранить email'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Смена пароля ── */}
+        <div className={s.securityCard}>
+          <div className={s.securityCardBody}>
+            <div className={s.securityCardTitle}>Пароль</div>
+            <div className={s.securityCardMeta}>••••••••</div>
+            <div className={s.securityActions}>
+              <button className={s.securityBtn} onClick={() => { setShowPasswordForm((v) => !v); setShowEmailForm(false); }}>
+                Изменить пароль
+              </button>
+            </div>
+          </div>
+        </div>
+        {showPasswordForm && (
+          <div className={s.pinSetupCard}>
+            <div className={s.pinSetupFields}>
+              <div className={s.field}>
+                <label className={s.fieldLabel}>Текущий пароль</label>
+                <input
+                  className="kort-input"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Текущий пароль"
+                  autoComplete="current-password"
+                />
+              </div>
+              <div className={s.field}>
+                <label className={s.fieldLabel}>Новый пароль</label>
+                <input
+                  className="kort-input"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Минимум 6 символов"
+                  autoComplete="new-password"
+                />
+              </div>
+              <div className={s.field}>
+                <label className={s.fieldLabel}>Повторите новый пароль</label>
+                <input
+                  className="kort-input"
+                  type="password"
+                  value={newPasswordConfirm}
+                  onChange={(e) => setNewPasswordConfirm(e.target.value)}
+                  placeholder="Повторите пароль"
+                  autoComplete="new-password"
+                />
+              </div>
+            </div>
+            <div className={s.pinSetupActions}>
+              <button className={s.securityBtn} disabled={passwordLoading} onClick={() => void handleChangePassword()}>
+                {passwordLoading ? 'Сохраняем...' : 'Сохранить пароль'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ProfileSection() {
+  const userAuth = useAuthStore((state) => state.user);
+  const setUser = useAuthStore((state) => state.setUser);
+  const queryClient = useQueryClient();
+  const { mood, statusText, setMood, setStatusText } = useProfileStore();
+
+  const [fullName, setFullName] = useState(userAuth?.full_name ?? '');
+  const [phone, setPhone] = useState(userAuth?.phone ?? '');
+
+  const { data: meData } = useQuery<{
+    id: string; full_name: string; email: string; phone: string | null; avatar_url: string | null;
+  }>({
+    queryKey: ['me'],
+    queryFn: () => api.get('/users/me/'),
+    staleTime: 30000,
+  });
+
+  useEffect(() => {
+    if (meData) {
+      setFullName(meData.full_name ?? '');
+      setPhone(meData.phone ?? '');
+    }
+  }, [meData]);
+
+  const mutation = useMutation({
+    mutationFn: (payload: { full_name?: string; phone?: string | null }) =>
+      api.patch('/users/me/', payload),
+    onSuccess: (data: any) => {
+      if (data?.user) setUser(data.user);
+      queryClient.invalidateQueries({ queryKey: ['me'] });
+      toast.success('Профиль обновлён');
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message;
+      toast.error(msg ?? 'Не удалось сохранить изменения');
+    },
+  });
+
+  const initials = (fullName || userAuth?.full_name || '?')
+    .split(' ')
+    .filter(Boolean)
+    .map((w: string) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+  return (
+    <div className={s.section}>
+      <div className={s.sectionHeader}>
+        <div>
+          <div className={s.sectionTitle}>Профиль</div>
+          <div className={s.sectionSubtitle}>Личная информация и статус</div>
+        </div>
+        <Button size="sm" loading={mutation.isPending} onClick={() => mutation.mutate({ full_name: fullName.trim() || undefined, phone: phone.trim() || null })}>
+          Сохранить
+        </Button>
+      </div>
+      <div className={s.sectionBody}>
+        <div className={s.profileAvatarRow}>
+          <div className={s.profileAvatar}>{initials}</div>
+          <div className={s.profileAvatarMeta}>
+            <div className={s.profileAvatarName}>{fullName || userAuth?.full_name}</div>
+            <div className={s.profileAvatarEmail}>{meData?.email ?? userAuth?.email ?? ''}</div>
+          </div>
+        </div>
+
+        <div className={s.fieldGrid}>
+          <div className={s.field}>
+            <label className={s.fieldLabel}>Имя</label>
+            <input
+              className="kort-input"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Ваше имя"
+              autoComplete="name"
+            />
+          </div>
+          <div className={s.field}>
+            <label className={s.fieldLabel}>Телефон</label>
+            <input
+              className="kort-input"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+7 (XXX) XXX-XX-XX"
+              inputMode="tel"
+              autoComplete="tel"
+            />
+          </div>
+        </div>
+
+        <div className={s.field}>
+          <label className={s.fieldLabel}>Статус</label>
+          <input
+            className="kort-input"
+            value={statusText}
+            onChange={(e) => setStatusText(e.target.value)}
+            placeholder="Что сейчас делаете?"
+            maxLength={80}
+          />
+        </div>
+
+        <div>
+          <div className={s.fieldLabel} style={{ marginBottom: 8 }}>Настроение</div>
+          <div className={s.moodGrid}>
+            {MOODS.map((m) => (
+              <button
+                key={m.key}
+                type="button"
+                className={[s.moodItem, mood === m.key ? s.moodItemActive : ''].join(' ')}
+                onClick={() => setMood(m.key)}
+                title={m.label}
+              >
+                <span className={s.moodEmoji}>{m.emoji || '○'}</span>
+                <span className={s.moodLabel}>{m.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SecuritySection() {
+  const { isOwner } = useRole();
   const pin = usePinStore((state) => state.pin);
   const isTrustedDevice = usePinStore((state) => state.isTrustedDevice);
   const setPin = usePinStore((state) => state.setPin);
@@ -563,6 +878,8 @@ function SecuritySection() {
   const [showForm, setShowForm] = useState(false);
 
   return (
+    <>
+    {isOwner && <OwnerCredentialsCard />}
     <div className={s.section}>
       <div className={s.sectionHeader}>
         <div>
@@ -643,6 +960,7 @@ function SecuritySection() {
         )}
       </div>
     </div>
+    </>
   );
 }
 
@@ -710,6 +1028,7 @@ export default function SettingsPage() {
 
   const visibleSections = useMemo(() => SECTIONS.filter((item) => {
     switch (item.key) {
+      case 'profile':
       case 'company-access':
       case 'appearance':
       case 'security':
@@ -772,6 +1091,7 @@ export default function SettingsPage() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.13 }}
             >
+              {section === 'profile' && <ProfileSection />}
               {section === 'organization' && <OrgSection />}
               {section === 'company-access' && <CompanyAccessSection />}
               {section === 'appearance' && <AppearanceSection />}
