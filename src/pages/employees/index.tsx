@@ -118,9 +118,13 @@ function EditEmployeeDrawer({ employee, onClose }: { employee: Employee; onClose
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    await updateEmployee.mutateAsync({ id: employee.id, dto: { department: dept, permissions: perms } });
-    setPermsDirty(false);
-    onClose();
+    try {
+      await updateEmployee.mutateAsync({ id: employee.id, dto: { department: dept, permissions: perms } });
+      setPermsDirty(false);
+      onClose();
+    } catch {
+      // error is shown via toast in useUpdateEmployee.onError
+    }
   }
 
   return (
@@ -411,7 +415,7 @@ export default function EmployeesPage() {
       )}
 
       {addOpen && <AddEmployeeDrawer onClose={() => setAddOpen(false)} />}
-      {editEmployee && <EditEmployeeDrawer employee={editEmployee} onClose={() => setEditEmployee(null)} />}
+      {editEmployee && <EditEmployeeDrawer key={editEmployee.id} employee={editEmployee} onClose={() => setEditEmployee(null)} />}
     </div>
   );
 }
