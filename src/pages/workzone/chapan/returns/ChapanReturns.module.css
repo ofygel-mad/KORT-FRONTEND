@@ -237,3 +237,30 @@
   font-size: 11px;
   color: #4FC999;
 }
+
+@media (max-width: 768px) {
+  .root { padding: 14px; }
+
+  /* Stack row content + actions vertically on mobile */
+  .row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .rowRight {
+    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* Larger touch targets for confirm/delete */
+  .confirmBtn { min-height: 40px; padding: 8px 14px; }
+  .deleteBtn  { min-height: 40px; padding: 8px 12px; }
+}
+
+@media (max-width: 480px) {
+  .root { padding: 10px; }
+  .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
