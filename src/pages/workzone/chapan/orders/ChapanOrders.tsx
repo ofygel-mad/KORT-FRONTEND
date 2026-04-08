@@ -1,6 +1,6 @@
 import { memo, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Check, LayoutGrid, Layers, List, Plus, Search, SlidersHorizontal, Trash2, X } from 'lucide-react';
+import { Bell, Check, ChevronLeft, ChevronRight, LayoutGrid, Layers, List, Plus, Search, SlidersHorizontal, Trash2, X } from 'lucide-react';
 import { useOrders, useOrderWarehouseStates, useTrashOrder } from '../../../../entities/order/queries';
 import type { ChapanOrder, OrderStatus, OrderWarehouseState } from '../../../../entities/order/types';
 import { useProductsAvailability } from '../../../../entities/warehouse/queries';
@@ -157,6 +157,11 @@ export default function ChapanOrdersPage() {
   const [showAlertsPanel, setShowAlertsPanel] = useState(false);
   const viewPickerRef = useRef<HTMLDivElement>(null);
 
+  // Calendar filter state
+  const today = new Date();
+  const [calendarDate, setCalendarDate] = useState<Date | null>(null); // selected day
+  const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(today.getFullYear(), today.getMonth(), 1));
+
   const { isAbsolute } = useEmployeePermissions();
   const trashOrder = useTrashOrder();
 
@@ -171,7 +176,7 @@ export default function ChapanOrdersPage() {
   const activeAlertOrderIds = useMemo(() => new Set(alerts.map((a) => a.orderId)), [alerts]);
 
   const deferred = useDeferredValue(search);
-  const hasActiveFilters = Boolean(search || statusFilter || payFilter);
+  const hasActiveFilters = Boolean(search || statusFilter || payFilter || calendarDate);
 
   useEffect(() => {
     const savedView = localStorage.getItem(viewStorageKey(userId));
@@ -192,7 +197,7 @@ export default function ChapanOrdersPage() {
     return () => document.removeEventListener('mousedown', handle);
   }, [showViewMenu]);
 
-  const setViewMode = (mode: ViewMode) => {
+const setViewMode = (mode: ViewMode) => {
     setViewModeState(mode);
     setShowViewMenu(false);
     localStorage.setItem(viewStorageKey(userId), mode);
@@ -205,13 +210,56 @@ export default function ChapanOrdersPage() {
     });
   };
 
+  const calendarDateFrom = useMemo(() => {
+    if (!calendarDate) return undefined;
+    const d = new Date(calendarDate);
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString();
+  }, [calendarDate]);
+
+  const calendarDateTo = useMemo(() => {
+    if (!calendarDate) return undefined;
+    const d = new Date(calendarDate);
+    d.setHours(23, 59, 59, 999);
+    return d.toISOString();
+  }, [calendarDate]);
+
   const { data, isLoading, isError } = useOrders({
     search: deferred || undefined,
     status: statusFilter || undefined,
     paymentStatus: payFilter || undefined,
     archived: false,
-    limit: 100,
+    limit: 200,
+    createdFrom: calendarDateFrom,
+    createdTo: calendarDateTo,
   });
+
+  // Month orders: fetch entire month to mark days with orders
+  const monthFrom = useMemo(() => {
+    const d = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString();
+  }, [calendarMonth]);
+  const monthTo = useMemo(() => {
+    const d = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0);
+    d.setHours(23, 59, 59, 999);
+    return d.toISOString();
+  }, [calendarMonth]);
+
+  const { data: monthData } = useOrders({
+    archived: false,
+    limit: 500,
+    createdFrom: monthFrom,
+    createdTo: monthTo,
+  });
+
+  const daysWithOrders = useMemo(() => {
+    const set = new Set<string>();
+    for (const o of monthData?.results ?? []) {
+      set.add(o.createdAt.slice(0, 10));
+    }
+    return set;
+  }, [monthData?.results]);
   const orders: ChapanOrder[] = useMemo(() => {
     const raw = data?.results ?? [];
     // D1: urgent-заказы всегда наверху, внутри каждой группы — порядок сервера
@@ -308,7 +356,7 @@ export default function ChapanOrdersPage() {
             onClick={() => setShowFilters(v => !v)}
           >
             <SlidersHorizontal size={13} /><span>Фильтры</span>
-            {(statusFilter || payFilter) && <span className={styles.filterDot} />}
+            {(statusFilter || payFilter || calendarDate) && <span className={styles.filterDot} />}
           </button>
 
           {/* Alerts bell icon */}
@@ -360,8 +408,30 @@ export default function ChapanOrdersPage() {
               {Object.entries(PAY_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>
-          {(statusFilter || payFilter) && (
-            <button className={styles.clearFilters} onClick={() => { setStatusFilter(''); setPayFilter(''); }}>Сбросить</button>
+          <div className={styles.filterGroupCalendar}>
+            <label className={styles.filterLabel}>
+              Дата оформления
+              {calendarDate && (
+                <span className={styles.filterCalendarSelected}>
+                  {calendarDate.toLocaleDateString('ru-KZ', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>
+              )}
+            </label>
+            <MiniCalendar
+              month={calendarMonth}
+              selected={calendarDate}
+              daysWithOrders={daysWithOrders}
+              today={today}
+              onSelectDay={(d) => {
+                const isSame = calendarDate && d.toDateString() === calendarDate.toDateString();
+                setCalendarDate(isSame ? null : d);
+              }}
+              onPrevMonth={() => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
+              onNextMonth={() => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
+            />
+          </div>
+          {(statusFilter || payFilter || calendarDate) && (
+            <button className={styles.clearFilters} onClick={() => { setStatusFilter(''); setPayFilter(''); setCalendarDate(null); }}>Сбросить</button>
           )}
         </div>
       )}
@@ -490,6 +560,94 @@ export default function ChapanOrdersPage() {
               )}
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Mini Calendar ─────────────────────────────────────────────────────────────
+
+const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+const MONTH_NAMES = [
+  'Январь','Февраль','Март','Апрель','Май','Июнь',
+  'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь',
+];
+
+function MiniCalendar({
+  month,
+  selected,
+  daysWithOrders,
+  today,
+  onSelectDay,
+  onPrevMonth,
+  onNextMonth,
+}: {
+  month: Date;
+  selected: Date | null;
+  daysWithOrders: Set<string>;
+  today: Date;
+  onSelectDay: (d: Date) => void;
+  onPrevMonth: () => void;
+  onNextMonth: () => void;
+}) {
+  const year = month.getFullYear();
+  const mon = month.getMonth();
+
+  // First day of month (0=Sun…6=Sat), shift to Mon-based (0=Mon…6=Sun)
+  const firstDow = new Date(year, mon, 1).getDay();
+  const startOffset = (firstDow + 6) % 7; // Mon=0
+
+  const daysInMonth = new Date(year, mon + 1, 0).getDate();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const selectedStr = selected ? `${selected.getFullYear()}-${String(selected.getMonth() + 1).padStart(2,'0')}-${String(selected.getDate()).padStart(2,'0')}` : null;
+
+  const cells: (number | null)[] = [
+    ...Array(startOffset).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+  // pad to full 6-row grid
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  return (
+    <div className={styles.calendarDropdown}>
+      <div className={styles.calendarHeader}>
+        <button className={styles.calendarNavBtn} onClick={onPrevMonth}><ChevronLeft size={13} /></button>
+        <span className={styles.calendarMonthLabel}>{MONTH_NAMES[mon]} {year}</span>
+        <button className={styles.calendarNavBtn} onClick={onNextMonth}><ChevronRight size={13} /></button>
+      </div>
+      <div className={styles.calendarGrid}>
+        {WEEKDAYS.map(w => (
+          <div key={w} className={styles.calendarWeekday}>{w}</div>
+        ))}
+        {cells.map((day, idx) => {
+          if (!day) return <div key={idx} className={styles.calendarEmpty} />;
+          const dayStr = `${year}-${String(mon + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+          const isToday = dayStr === todayStr;
+          const isSelected = dayStr === selectedStr;
+          const hasOrders = daysWithOrders.has(dayStr);
+          return (
+            <button
+              key={dayStr}
+              className={[
+                styles.calendarDay,
+                isToday ? styles.calendarDayToday : '',
+                isSelected ? styles.calendarDaySelected : '',
+              ].join(' ')}
+              onClick={() => onSelectDay(new Date(year, mon, day))}
+              title={hasOrders ? `${day} — есть заказы` : String(day)}
+            >
+              <span>{day}</span>
+              {hasOrders && <span className={styles.calendarDot} />}
+            </button>
+          );
+        })}
+      </div>
+      {selected && (
+        <div className={styles.calendarFooter}>
+          <button className={styles.calendarClear} onClick={() => onSelectDay(selected)}>
+            <X size={11} /> Сбросить дату
+          </button>
         </div>
       )}
     </div>
