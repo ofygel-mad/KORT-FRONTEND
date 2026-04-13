@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle2, Clock, CreditCard, MessageSquare, AlertTriangle, Pencil, ArchiveIcon, RotateCcw, Download, Package, XCircle, FileText, Paperclip, Trash2, Upload, Undo2 } from 'lucide-react';
-import { useOrder, useChangeOrderStatus, useAddPayment, useAddOrderActivity, useRestoreOrder, useCloseOrder, useCreateInvoice, useSetRequiresInvoice, useConfirmSeamstress, useRouteSingleItem, useUploadAttachment, useDeleteAttachment, useReassignManager, useOrgManagers, useReturns, useCreateReturn, useConfirmReturn, useDeleteReturnDraft } from '../../../../entities/order/queries';
+import { useOrder, useChangeOrderStatus, useAddPayment, useAddOrderActivity, useRestoreOrder, useCloseOrder, useCreateInvoice, useSetRequiresInvoice, useRouteSingleItem, useUploadAttachment, useDeleteAttachment, useReassignManager, useOrgManagers, useReturns, useCreateReturn, useConfirmReturn, useDeleteReturnDraft } from '../../../../entities/order/queries';
 import { useChapanPermissions } from '../../../../shared/hooks/useChapanPermissions';
 import { useProductsAvailability } from '../../../../entities/warehouse/queries';
 import type { OrderItem, OrderItemFulfillmentMode, OrderStatus, Priority, Urgency, OrderAttachment, ReturnReason, ReturnRefundMethod, ReturnItemCondition, RETURN_REASON_LABELS, RETURN_REFUND_METHOD_LABELS } from '../../../../entities/order/types';
@@ -170,7 +170,6 @@ export default function ChapanOrderDetailPage() {
   const closeOrder = useCloseOrder();
   const createInvoice = useCreateInvoice();
   const setRequiresInvoice = useSetRequiresInvoice();
-  const confirmSeamstress = useConfirmSeamstress();
   const routeSingleItem = useRouteSingleItem();
   const uploadAttachment = useUploadAttachment(id!);
   const deleteAttachment = useDeleteAttachment(id!);
@@ -196,7 +195,6 @@ export default function ChapanOrderDetailPage() {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [restorePromptOpen, setRestorePromptOpen] = useState(false);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
-  const [closeUnpaidWarning, setCloseUnpaidWarning] = useState(false);
   const [invoiceDownloading, setInvoiceDownloading] = useState(false);
   const [reassignOpen, setReassignOpen] = useState(false);
   const [selectedNewManagerId, setSelectedNewManagerId] = useState('');
@@ -652,18 +650,8 @@ export default function ChapanOrderDetailPage() {
                       Склад
                     </span>
                   </div>
-                  {!pendingInvoice.seamstressConfirmed && (
-                    <button
-                      className={styles.invoiceConfirmBtn}
-                      onClick={() => confirmSeamstress.mutate(pendingInvoice.id)}
-                      disabled={confirmSeamstress.isPending}
-                    >
-                      <CheckCircle2 size={13} />
-                      {confirmSeamstress.isPending ? 'Подтверждение...' : 'Подтвердить отправку'}
-                    </button>
-                  )}
                   <div className={styles.invoicePanelHint}>
-                    Заказ перейдёт на склад после двустороннего подтверждения
+                    Заказ перейдёт на склад в ожидании подтверждения от склада
                   </div>
                 </div>
               )}
@@ -672,10 +660,7 @@ export default function ChapanOrderDetailPage() {
               {['ready', 'transferred', 'on_warehouse', 'completed'].includes(order.status) && !order.isArchived && (
                 <button
                   className={`${styles.actionBtn} ${styles.actionArchive}`}
-                  onClick={() => {
-                    if (order.paymentStatus !== 'paid') setCloseUnpaidWarning(true);
-                    else closeOrder.mutate(order.id);
-                  }}
+                  onClick={() => { closeOrder.mutate(order.id); }}
                   disabled={closeOrder.isPending}
                 >
                   <ArchiveIcon size={13} />
@@ -1041,19 +1026,6 @@ export default function ChapanOrderDetailPage() {
             <div className={styles.confirmActions}>
               <button type="button" className={styles.confirmSecondary} onClick={() => setRestorePromptOpen(false)}>Отмена</button>
               <button type="button" className={styles.confirmPrimary} onClick={() => { setRestorePromptOpen(false); restoreOrder.mutate({ id: order.id, status: order.status }); }} disabled={restoreOrder.isPending}>Восстановить</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {closeUnpaidWarning && (
-        <div className={styles.confirmOverlay} role="dialog" aria-modal="true" aria-labelledby="close-unpaid-title" onClick={() => setCloseUnpaidWarning(false)}>
-          <div className={styles.confirmDialog} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.confirmTitle} id="close-unpaid-title">Заказ не полностью оплачен</div>
-            <div className={styles.confirmText}>Остаток по заказу #{order.orderNumber}: <strong>{fmt(balance)}</strong>.{order.paymentStatus === 'not_paid' ? ' Оплата не поступала.' : ' Оплата поступила частично.'} Вы уверены, что хотите закрыть сделку?</div>
-            <div className={styles.confirmActions}>
-              <button type="button" className={styles.confirmSecondary} onClick={() => setCloseUnpaidWarning(false)}>Отмена</button>
-              <button type="button" className={styles.confirmDanger} onClick={() => { setCloseUnpaidWarning(false); closeOrder.mutate(order.id); }} disabled={closeOrder.isPending}>Закрыть всё равно</button>
             </div>
           </div>
         </div>

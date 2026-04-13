@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { AlertTriangle, CheckCircle2, Factory, FileText, Flag, Layers, MessageSquare, Search, User, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Factory, Flag, Layers, MessageSquare, Search, User, X } from 'lucide-react';
 import {
   useAssignWorker,
   useChapanCatalogs,
@@ -15,7 +15,6 @@ import {
 } from '../../../../entities/order/queries';
 import type { ChapanChangeRequest, Priority, ProductionStatus, ProductionTask, Urgency } from '../../../../entities/order/types';
 import { useAuthStore } from '@/shared/stores/auth';
-import { useChapanUiStore } from '../../../../features/workzone/chapan/store';
 import { buildItemLine, buildTaskMetaLine } from '../../../../shared/utils/itemLine';
 import styles from './ChapanProduction.module.css';
 
@@ -137,7 +136,9 @@ export default function ChapanProductionPage() {
   const employeePermissions = useAuthStore((state) => state.user?.employee_permissions ?? []);
 
   const workshopDefault =
-    employeePermissions.includes('production')
+    (employeePermissions.includes('production') || employeePermissions.includes('chapan_access_production'))
+    && !employeePermissions.includes('chapan_full_access')
+    && !employeePermissions.includes('full_access')
     && membershipRole !== 'owner'
     && membershipRole !== 'admin';
 
@@ -149,7 +150,6 @@ export default function ChapanProductionPage() {
   const [flagReason, setFlagReason] = useState('');
   const [rejectModal, setRejectModal] = useState<{ crId: string; orderNumber: string } | null>(null);
   const [rejectReason, setRejectReason] = useState('');
-  const setInvoicesDrawerOpen = useChapanUiStore((s) => s.setInvoicesDrawerOpen);
 
   useEffect(() => {
     setView(workshopDefault ? 'workshop' : 'manager');
@@ -270,14 +270,6 @@ export default function ChapanProductionPage() {
             />
           </div>
           <button
-            className={`${styles.groupToggle} ${styles.invoiceQueueBtn}`}
-            onClick={() => setInvoicesDrawerOpen(true)}
-          >
-            <FileText size={13} />
-            <span>Накладная Ожидает приёмки</span>
-          </button>
-
-          <button
             className={`${styles.groupToggle} ${grouped ? styles.groupToggleActive : ''}`}
             onClick={toggleGrouped}
             title={grouped ? 'Отключить группировку' : 'Сгруппировать похожие задания'}
@@ -286,20 +278,22 @@ export default function ChapanProductionPage() {
             <span>Группировать</span>
           </button>
 
-          <div className={styles.viewSwitch}>
-            <button
-              className={`${styles.switchBtn} ${view === 'manager' ? styles.switchActive : ''}`}
-              onClick={() => setView('manager')}
-            >
-              Управление
-            </button>
-            <button
-              className={`${styles.switchBtn} ${view === 'workshop' ? styles.switchActive : ''}`}
-              onClick={() => setView('workshop')}
-            >
-              Швея
-            </button>
-          </div>
+          {!workshopDefault && (
+            <div className={styles.viewSwitch}>
+              <button
+                className={`${styles.switchBtn} ${view === 'manager' ? styles.switchActive : ''}`}
+                onClick={() => setView('manager')}
+              >
+                Управление
+              </button>
+              <button
+                className={`${styles.switchBtn} ${view === 'workshop' ? styles.switchActive : ''}`}
+                onClick={() => setView('workshop')}
+              >
+                Швея
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -524,6 +518,108 @@ export default function ChapanProductionPage() {
   );
 }
 
+function TaskDetailPanel({ task }: { task: ProductionTask }) {
+  const deadline = formatDeadline(task.order.dueDate);
+
+  return (
+    <div className={styles.detailPanel}>
+      <div className={styles.detailSection}>
+        <div className={styles.detailSectionLabel}>Изделие</div>
+        <div className={styles.detailGrid}>
+          <span className={styles.detailLabel}>Товар:</span>
+          <span className={styles.detailValue}>{task.productName}</span>
+
+          {task.color && (
+            <>
+              <span className={styles.detailLabel}>Цвет:</span>
+              <span className={styles.detailValue}>{task.color}</span>
+            </>
+          )}
+
+          {task.gender && (
+            <>
+              <span className={styles.detailLabel}>Пол:</span>
+              <span className={styles.detailValue}>{task.gender}</span>
+            </>
+          )}
+
+          {task.fabric && (
+            <>
+              <span className={styles.detailLabel}>Ткань:</span>
+              <span className={styles.detailValue}>{task.fabric}</span>
+            </>
+          )}
+
+          <span className={styles.detailLabel}>Размер:</span>
+          <span className={styles.detailValue}>{task.size}</span>
+
+          {task.length && (
+            <>
+              <span className={styles.detailLabel}>Длина:</span>
+              <span className={styles.detailValue}>{task.length}</span>
+            </>
+          )}
+
+          <span className={styles.detailLabel}>Кол-во:</span>
+          <span className={styles.detailValue}>{task.quantity} шт.</span>
+        </div>
+      </div>
+
+      {(task.notes || task.workshopNotes) && (
+        <div className={styles.detailSection}>
+          <div className={styles.detailSectionLabel}>Примечания</div>
+          {task.notes && (
+            <div className={styles.noteItem}>
+              <span className={styles.noteLabel}>К заданию:</span>
+              <span className={styles.noteText}>{task.notes}</span>
+            </div>
+          )}
+          {task.workshopNotes && (
+            <div className={styles.noteItem}>
+              <span className={styles.noteLabel}>К позиции:</span>
+              <span className={styles.noteText}>{task.workshopNotes}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {task.defects && (
+        <div className={`${styles.detailSection} ${styles.defectSection}`}>
+          <div className={styles.detailSectionLabel}>Дефекты</div>
+          <div className={styles.defectNote}>{task.defects}</div>
+        </div>
+      )}
+
+      <div className={styles.detailSection}>
+        <div className={styles.detailSectionLabel}>Детали заказа</div>
+        <div className={styles.detailGrid}>
+          <span className={styles.detailLabel}>Заказ:</span>
+          <span className={styles.detailValue}>#{task.order.orderNumber}</span>
+
+          {deadline && (
+            <>
+              <span className={styles.detailLabel}>Срок:</span>
+              <span className={styles.detailValue}>{deadline}</span>
+            </>
+          )}
+
+          {task.assignedTo && (
+            <>
+              <span className={styles.detailLabel}>Исполнитель:</span>
+              <span className={styles.detailValue}>{task.assignedTo}</span>
+            </>
+          )}
+
+          <span className={styles.detailLabel}>Статус:</span>
+          <span className={styles.detailValue}>
+            {task.status === 'queued' ? 'В очереди' : task.status === 'in_progress' ? 'В работе' : 'Готово'}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface TaskCardProps {
   task: ProductionTask;
   column: ColumnKey;
@@ -547,6 +643,7 @@ function TaskCard({
   onFlag,
   onUnflag,
 }: TaskCardProps) {
+  const [detailOpen, setDetailOpen] = useState(false);
   const deadline = formatDeadline(task.order.dueDate);
   const canClaim = !task.isBlocked && (!task.assignedTo || task.assignedTo === currentWorkerName);
   const isUrgent = (task.order.urgency ?? task.order.priority) === 'urgent';
@@ -654,7 +751,20 @@ function TaskCard({
             </button>
           )
         )}
+
+        {mode === 'workshop' && (
+          <button
+            className={styles.ghostAction}
+            onClick={() => setDetailOpen((v) => !v)}
+            aria-expanded={detailOpen}
+            style={{ marginLeft: 'auto', fontSize: 11 }}
+          >
+            {detailOpen ? 'Скрыть' : 'Детали'}
+          </button>
+        )}
       </div>
+
+      {mode === 'workshop' && detailOpen && <TaskDetailPanel task={task} />}
     </article>
   );
 }

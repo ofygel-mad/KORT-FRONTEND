@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Archive, CheckCheck, ChevronLeft, Factory, Package, Trash2, Warehouse, Undo2 } from 'lucide-react';
+import { Archive, CheckCheck, ChevronLeft, Factory, FileText, Package, Trash2, Warehouse, Undo2 } from 'lucide-react';
 import { useAuthStore } from '../../../shared/stores/auth';
 import { useChapanPermissions } from '../../../shared/hooks/useChapanPermissions';
 import { ThemeSwitcher } from '../../../shared/ui/ThemeSwitcher';
@@ -32,6 +32,7 @@ export default function ChapanShell() {
     canAccessReady,
     canAccessArchive,
     canAccessWarehouseNav,
+    canAccessInvoices,
   } = useChapanPermissions();
   const invoicesDrawerOpen = useChapanUiStore((s) => s.invoicesDrawerOpen);
   const invoicesDrawerFilter = useChapanUiStore((s) => s.invoicesDrawerFilter);
@@ -117,6 +118,7 @@ export default function ChapanShell() {
 
   const navItems = [
     ...ALL_SECTION_NAV.filter((item) => sectionAccess[item.perm]),
+    ...(canAccessInvoices                  ? [{ to: '/workzone/chapan/invoices' as const,    label: 'Накладные', icon: FileText  }] : []),
     ...((isAdmin || canAccessWarehouseNav) ? [{ to: '/workzone/chapan/warehouse' as const,    label: 'Склад',    icon: Warehouse }] : []),
     ...(isAdmin                            ? [{ to: '/workzone/chapan/returns' as const,      label: 'Возвраты', icon: Undo2     }] : []),
     ...(isAbsolute                         ? [{ to: '/workzone/chapan/orders/trash' as const, label: 'Корзина',  icon: Trash2    }] : []),

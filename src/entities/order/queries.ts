@@ -381,7 +381,7 @@ export const usePreviewInvoiceDocument = () =>
   useMutation({
     mutationFn: ({ orderIds }: { orderIds: string[] }) =>
       invoicesApi.previewDocument(orderIds),
-    onError: (error) => toast.error(readApiErrorMessage(error, 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ preview РЅР°РєР»Р°РґРЅРѕР№')),
+    onError: (error) => toast.error(readApiErrorMessage(error, 'Не удалось создать preview накладной')),
   });
 
 export const useSaveInvoiceDocument = () => {

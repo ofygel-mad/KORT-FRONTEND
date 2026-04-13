@@ -1,10 +1,9 @@
 import { useDeferredValue, useEffect, useRef, useState, type CSSProperties, type ElementType } from 'react';
-import { AlertTriangle, Archive, Bell, Check, CheckCheck, CheckCircle2, CheckSquare, Clock, Download, Eye, FileText, LayoutGrid, Layers, List, Plus, Search, Warehouse, X } from 'lucide-react';
+import { AlertTriangle, Archive, Bell, Check, CheckCheck, CheckCircle2, CheckSquare, Clock, Download, Eye, FileText, LayoutGrid, Layers, List, Plus, RotateCcw, Search, Warehouse, X, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useArchiveOrder, useChangeOrderStatus, useCloseOrder, useCreateInvoice, useOrders, usePreviewInvoiceDocument } from '../../../../entities/order/queries';
+import { useArchiveOrder, useChangeOrderStatus, useCreateInvoice, useOrders, usePreviewInvoiceDocument, useInvoices } from '../../../../entities/order/queries';
 import type { ChapanOrder, InvoiceDocumentPayload, OrderStatus, Priority, Urgency } from '../../../../entities/order/types';
 import { useAuthStore } from '@/shared/stores/auth';
-import { useCreateUnpaidAlert } from '../../../../entities/alert/queries';
 import { buildItemLine } from '../../../../shared/utils/itemLine';
 import { useChapanUiStore } from '../../../../features/workzone/chapan/store';
 import ChapanInvoicePreviewModal from '../invoices/ChapanInvoicePreviewModal';
@@ -81,6 +80,12 @@ function hasPendingProduction(order: ReadyOrder): boolean {
   return (order.productionTasks ?? []).some(task => task.status !== 'done');
 }
 
+function getItemTaskMap(order: ReadyOrder) {
+  return new Map(
+    (order.productionTasks ?? []).map(task => [task.orderItemId, task])
+  );
+}
+
 function hasWarehouseFulfillment(order: ChapanOrder): boolean {
   return (order.items ?? []).some(item => item.fulfillmentMode === 'warehouse');
 }
@@ -91,6 +96,10 @@ function hasPendingRouting(order: ReadyOrder): boolean {
 
 function pendingRoutingCount(order: ReadyOrder): number {
   return (order.items ?? []).filter(item => !item.fulfillmentMode || item.fulfillmentMode === 'unassigned').length;
+}
+
+function getRejectedInvoice(order: ReadyOrder) {
+  return order.invoiceOrders?.find(io => io.invoice?.status === 'rejected')?.invoice ?? null;
 }
 
 function buildItemSignature(orderItem: ChapanOrder['items'][number]) {
@@ -178,6 +187,13 @@ function getNextStage(_status: ReadyStatus): string | null {
 export default function ChapanReadyPage() {
   const navigate = useNavigate();
   const userId = useAuthStore((state) => state.user?.id);
+  const membershipRole = useAuthStore((state) => state.membership.role);
+  const employeePermissions = useAuthStore((state) => state.user?.employee_permissions ?? []);
+
+  const isWorkshopUser =
+    employeePermissions.includes('production')
+    && membershipRole !== 'owner'
+    && membershipRole !== 'admin';
 
   const [search, setSearch] = useState('');
   const [viewMode, setViewModeState] = useState<ViewMode>('grid');
@@ -185,13 +201,14 @@ export default function ChapanReadyPage() {
   const [showViewMenu, setShowViewMenu] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [closeUnpaidTarget, setCloseUnpaidTarget] = useState<{ ids: string[]; labels: string[]; balance: number } | null>(null);
   const [workshopBlockedOrders, setWorkshopBlockedOrders] = useState<string[] | null>(null);
   const [batchPreviewOpen, setBatchPreviewOpen] = useState(false);
   const [batchPreviewDocument, setBatchPreviewDocument] = useState<InvoiceDocumentPayload | null>(null);
   const [batchPreviewSelectionKey, setBatchPreviewSelectionKey] = useState('');
-  const setInvoicesDrawerOpen = useChapanUiStore((s) => s.setInvoicesDrawerOpen);
+  const [detailOrder, setDetailOrder] = useState<ReadyOrder | null>(null);
   const openInvoicesDrawer = useChapanUiStore((s) => s.openInvoicesDrawer);
+  const { data: pendingData } = useInvoices({ status: 'pending_confirmation', limit: 1 });
+  const pendingCount = pendingData?.count ?? 0;
   const viewPickerRef = useRef<HTMLDivElement>(null);
 
   const deferredSearch = useDeferredValue(search);
@@ -242,15 +259,13 @@ export default function ChapanReadyPage() {
   });
   const { data: partialData, isLoading: partialLoading, isError: partialError } = useOrders({
     archived: false,
-    hasWarehouseItems: true,
+    statuses: 'confirmed,in_production',
     search: deferredSearch || undefined,
     limit: 200,
   });
 
   const changeStatus = useChangeOrderStatus();
-  const closeOrder = useCloseOrder();
   const archiveOrder = useArchiveOrder();
-  const notifyManager = useCreateUnpaidAlert();
   const createInvoice = useCreateInvoice();
   const previewInvoiceDocument = usePreviewInvoiceDocument();
 
@@ -264,7 +279,10 @@ export default function ChapanReadyPage() {
     }
   }
   for (const order of partialData?.results ?? []) {
-    if ((order.status === 'confirmed' || order.status === 'in_production') && hasWarehouseFulfillment(order)) {
+    if (
+      (order.status === 'confirmed' || order.status === 'in_production') &&
+      (hasWarehouseFulfillment(order) || (order.productionTasks ?? []).some(t => t.status === 'done'))
+    ) {
       orderMap.set(order.id, order as ReadyOrder);
     }
   }
@@ -305,7 +323,7 @@ export default function ChapanReadyPage() {
         orderIds: targetOrders.map((order) => order.id),
         documentPayload: draftDocument,
       });
-      setInvoicesDrawerOpen(true);
+      openInvoicesDrawer('pending_confirmation');
     } else {
       await advanceOrders(targetOrders);
     }
@@ -317,43 +335,8 @@ export default function ChapanReadyPage() {
     void dispatchReadyOrders([order]);
   }
 
-  function requestClose(order: ReadyOrder) {
-    if (order.paymentStatus !== 'paid') {
-      setCloseUnpaidTarget({
-        ids: [order.id],
-        labels: [`#${order.orderNumber} — остаток: ${formatMoney(getOrderBalance(order))}`],
-        balance: getOrderBalance(order),
-      });
-    } else {
-      void closeOrder.mutateAsync(order.id);
-    }
-  }
-
   function handleAdvanceMany(batchOrders: ReadyOrder[]) {
     void dispatchReadyOrders(batchOrders);
-  }
-
-  function requestCloseMany(batchOrders: ReadyOrder[]) {
-    const unpaid = batchOrders.filter((o) => o.paymentStatus !== 'paid');
-    if (unpaid.length > 0) {
-      setCloseUnpaidTarget({
-        ids: batchOrders.map((o) => o.id),
-        labels: unpaid.map((o) => `#${o.orderNumber} — остаток: ${formatMoney(getOrderBalance(o))}`),
-        balance: unpaid.reduce((sum, o) => sum + getOrderBalance(o), 0),
-      });
-    } else {
-      for (const order of batchOrders) {
-        void closeOrder.mutateAsync(order.id);
-      }
-    }
-  }
-
-  async function forceCloseUnpaid() {
-    if (!closeUnpaidTarget) return;
-    for (const id of closeUnpaidTarget.ids) {
-      await closeOrder.mutateAsync(id);
-    }
-    setCloseUnpaidTarget(null);
   }
 
   function toggleSelect(id: string) {
@@ -500,10 +483,11 @@ export default function ChapanReadyPage() {
 
           <button
             className={styles.groupToggle}
-            onClick={() => setInvoicesDrawerOpen(true)}
+            onClick={() => openInvoicesDrawer('pending_confirmation')}
           >
             <FileText size={13} />
             <span>Накладная Ожидает приёмки</span>
+            {pendingCount > 0 && <span className={styles.pendingBadge}>{pendingCount}</span>}
           </button>
 
           <button
@@ -549,9 +533,8 @@ export default function ChapanReadyPage() {
                 <ReadyCard
                   key={group.order.id}
                   order={group.order}
-                  onOpen={() => navigate(`/workzone/chapan/ready/${group.order.id}`)}
+                  onOpen={() => isWorkshopUser ? setDetailOrder(group.order) : navigate(`/workzone/chapan/ready/${group.order.id}`)}
                   onAdvance={() => handleAdvance(group.order)}
-                  onClose={() => requestClose(group.order)}
                   selectMode={selectMode}
                   isSelected={selectedIds.has(group.order.id)}
                   onToggleSelect={() => toggleSelect(group.order.id)}
@@ -560,9 +543,8 @@ export default function ChapanReadyPage() {
                 <ReadyBatchCard
                   key={`batch-${index}`}
                   orders={group.orders}
-                  onOpen={(id) => navigate(`/workzone/chapan/ready/${id}`)}
+                  onOpen={(id) => isWorkshopUser ? setDetailOrder(group.orders.find(o => o.id === id) ?? null) : navigate(`/workzone/chapan/ready/${id}`)}
                   onAdvance={() => handleAdvanceMany(group.orders)}
-                  onClose={() => requestCloseMany(group.orders)}
                   selectMode={selectMode}
                   selectedIds={selectedIds}
                   onToggleSelectMany={() => toggleSelectMany(group.orders.map((o) => o.id))}
@@ -577,9 +559,8 @@ export default function ChapanReadyPage() {
                 <ReadyRow
                   key={group.order.id}
                   order={group.order}
-                  onOpen={() => navigate(`/workzone/chapan/ready/${group.order.id}`)}
+                  onOpen={() => isWorkshopUser ? setDetailOrder(group.order) : navigate(`/workzone/chapan/ready/${group.order.id}`)}
                   onAdvance={() => handleAdvance(group.order)}
-                  onClose={() => requestClose(group.order)}
                   selectMode={selectMode}
                   isSelected={selectedIds.has(group.order.id)}
                   onToggleSelect={() => toggleSelect(group.order.id)}
@@ -588,9 +569,8 @@ export default function ChapanReadyPage() {
                 <ReadyBatchRow
                   key={`batch-row-${index}`}
                   orders={group.orders}
-                  onOpen={(id) => navigate(`/workzone/chapan/ready/${id}`)}
+                  onOpen={(id) => isWorkshopUser ? setDetailOrder(group.orders.find(o => o.id === id) ?? null) : navigate(`/workzone/chapan/ready/${id}`)}
                   onAdvance={() => handleAdvanceMany(group.orders)}
-                  onClose={() => requestCloseMany(group.orders)}
                   selectMode={selectMode}
                   selectedIds={selectedIds}
                   onToggleSelectMany={() => toggleSelectMany(group.orders.map((o) => o.id))}
@@ -675,51 +655,118 @@ export default function ChapanReadyPage() {
         </div>
       )}
 
-      {closeUnpaidTarget && (
-        <div className={styles.confirmOverlay} onClick={() => setCloseUnpaidTarget(null)}>
-          <div className={styles.confirmDialog} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.confirmTitle}>
-              <AlertTriangle size={16} />
-              Заказ не полностью оплачен
-            </div>
-            <div className={styles.confirmText}>
-              <div style={{ marginBottom: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                Передача на склад невозможна, пока остаток не внесён полностью:
-              </div>
-              {closeUnpaidTarget.labels.map((label) => (
-                <div key={label} className={styles.unpaidLine}>{label}</div>
-              ))}
-            </div>
-            <div className={styles.confirmActions}>
-              <button
-                className={styles.confirmSecondary}
-                onClick={() => setCloseUnpaidTarget(null)}
+      {detailOrder && (
+        <ReadyProductionDetailModal
+          order={detailOrder}
+          onClose={() => setDetailOrder(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ReadyProductionDetailModal({
+  order,
+  onClose,
+}: {
+  order: ReadyOrder;
+  onClose: () => void;
+}) {
+  return (
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.modalHeader}>
+          <span>#{order.orderNumber}</span>
+          <button className={styles.modalClose} onClick={onClose}>
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className={styles.modalBody}>
+          {/* Status and deadline */}
+          <div className={styles.detailSection}>
+            <div className={styles.detailGrid}>
+              <span className={styles.detailLabel}>Статус:</span>
+              <span
+                className={styles.statusBadge}
+                style={{ color: STATUS_COLOR[order.status] }}
               >
-                Понятно
-              </button>
-              <button
-                className={styles.notifyBtn}
-                onClick={async () => {
-                  for (const id of closeUnpaidTarget.ids) {
-                    const order = orders.find(o => o.id === id);
-                    if (order) {
-                      await notifyManager.mutateAsync({
-                        orderId: id,
-                        orderNumber: order.orderNumber,
-                      });
-                    }
-                  }
-                  setCloseUnpaidTarget(null);
-                }}
-                disabled={notifyManager.isPending}
-              >
-                {notifyManager.isPending ? 'Отправка...' : 'Оповестить менеджера'}
-              </button>
+                {STATUS_LABEL[order.status]}
+              </span>
+
+              {order.dueDate && (
+                <>
+                  <span className={styles.detailLabel}>Срок:</span>
+                  <span className={styles.detailValue}>{formatDate(order.dueDate)}</span>
+                </>
+              )}
             </div>
           </div>
-        </div>
-      )}
 
+          {/* Order items with production status */}
+          <div className={styles.detailSection}>
+            <div className={styles.detailSectionLabel}>Позиции</div>
+            {order.items && order.items.length > 0 ? (
+              <div className={styles.itemsList}>
+                {(() => {
+                  const taskByItemId = getItemTaskMap(order);
+                  return order.items.map((item) => {
+                    const task = taskByItemId.get(item.id);
+                    const mode = item.fulfillmentMode;
+                    let statusLabel = '';
+                    let statusColor = 'var(--text-secondary)';
+                    if (task) {
+                      if (task.status === 'done') { statusLabel = 'Готово'; statusColor = '#4FC999'; }
+                      else if (task.status === 'in_progress') { statusLabel = 'В работе'; statusColor = '#E5922A'; }
+                      else { statusLabel = 'В очереди'; statusColor = '#8B5CF6'; }
+                    } else if (mode === 'warehouse') {
+                      statusLabel = 'Склад'; statusColor = 'var(--text-secondary)';
+                    } else if (!mode || mode === 'unassigned') {
+                      statusLabel = 'Без маршрута'; statusColor = '#D94F4F';
+                    }
+                    return (
+                      <div key={item.id} className={styles.itemRow}>
+                        <div className={styles.itemName}>
+                          {buildItemLine(item) || item.productName}
+                        </div>
+                        <div className={styles.itemMeta}>
+                          <span>{item.size}</span>
+                          <span>×{item.quantity}</span>
+                          {statusLabel && <span style={{ color: statusColor, fontWeight: 500 }}>{statusLabel}</span>}
+                        </div>
+                        {item.workshopNotes && (
+                          <div className={styles.itemNote}>{item.workshopNotes}</div>
+                        )}
+                        {task && (
+                          <>
+                            {task.assignedTo && (
+                              <div className={styles.taskAssigned}>{task.assignedTo}</div>
+                            )}
+                            {task.notes && (
+                              <div className={styles.taskNote}>
+                                <span className={styles.noteLabel}>К заданию:</span>
+                                {task.notes}
+                              </div>
+                            )}
+                            {task.defects && (
+                              <div className={styles.taskDefects}>
+                                <span className={styles.noteLabel}>Дефекты:</span>
+                                {task.defects}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            ) : (
+              <div className={styles.emptyMessage}>Нет позиций</div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -728,7 +775,6 @@ function ReadyCard({
   order,
   onOpen,
   onAdvance,
-  onClose,
   selectMode,
   isSelected,
   onToggleSelect,
@@ -736,7 +782,6 @@ function ReadyCard({
   order: ReadyOrder;
   onOpen: () => void;
   onAdvance: () => void;
-  onClose: () => void;
   selectMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: () => void;
@@ -747,6 +792,7 @@ function ReadyCard({
   const isPendingWorkshop = hasPendingProduction(order);
   const isPendingRouting = hasPendingRouting(order);
   const pendingCount = pendingRoutingCount(order);
+  const rejectedInvoice = getRejectedInvoice(order);
 
   const handleClick = selectMode && onToggleSelect ? onToggleSelect : onOpen;
 
@@ -782,6 +828,16 @@ function ReadyCard({
         )}
       </div>
 
+      {rejectedInvoice && (
+        <div className={styles.rejectedInvoiceBanner}>
+          <XCircle size={14} />
+          <span>Склад отклонил накладную {rejectedInvoice.invoiceNumber}</span>
+          {rejectedInvoice.rejectionReason && (
+            <span className={styles.rejectedReason}>Причина: {rejectedInvoice.rejectionReason}</span>
+          )}
+        </div>
+      )}
+
       {firstItem && (
         <div className={styles.itemBlock}>
           <span className={styles.itemName}>{buildItemLine(firstItem)} <span className={styles.orderNumber}>(#{order.orderNumber})</span></span>
@@ -791,6 +847,33 @@ function ReadyCard({
           {moreItems > 0 && <span className={styles.itemMore}>+ еще {moreItems}</span>}
         </div>
       )}
+
+      {order.items.length > 1 && order.productionTasks && order.productionTasks.length > 0 && (() => {
+        const taskByItemId = getItemTaskMap(order);
+        return (
+          <div className={styles.positionList}>
+            {order.items.map((item) => {
+              const task = taskByItemId.get(item.id);
+              const mode = item.fulfillmentMode;
+              let label = 'Без маршрута';
+              let color = 'var(--text-secondary)';
+              if (task) {
+                if (task.status === 'done') { label = 'Готово'; color = '#4FC999'; }
+                else if (task.status === 'in_progress') { label = 'В работе'; color = '#E5922A'; }
+                else { label = 'В очереди'; color = '#8B5CF6'; }
+              } else if (mode === 'warehouse') {
+                label = 'Склад'; color = 'var(--text-secondary)';
+              }
+              return (
+                <div key={item.id} className={styles.positionRow}>
+                  <span className={styles.positionName}>{buildItemLine(item) || item.productName}</span>
+                  <span className={styles.positionStatus} style={{ color }}>{label}</span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       <div className={styles.clientName}>{order.clientName}</div>
       <div className={styles.phone}>{order.clientPhone}</div>
@@ -807,9 +890,22 @@ function ReadyCard({
 
       {!selectMode && (
         <div className={styles.actions} onClick={(event) => event.stopPropagation()}>
-          <button className={styles.primaryAction} onClick={onAdvance} disabled={isPendingWorkshop || isPendingRouting}>
-            {isPendingRouting ? 'Назначьте маршрут' : isPendingWorkshop ? 'Ждём цех' : nextStageLabel}
-          </button>
+          {rejectedInvoice ? (
+            <button
+              className={styles.primaryAction}
+              onClick={onAdvance}
+              disabled={isPendingWorkshop || isPendingRouting}
+              style={{ background: '#D94F4F' }}
+              title={`Переправить накладную #${rejectedInvoice.invoiceNumber}`}
+            >
+              <RotateCcw size={14} style={{ marginRight: 6 }} />
+              Переправить накладную
+            </button>
+          ) : (
+            <button className={styles.primaryAction} onClick={onAdvance} disabled={isPendingWorkshop || isPendingRouting}>
+              {isPendingRouting ? 'Назначьте маршрут' : isPendingWorkshop ? 'Ждём цех' : nextStageLabel}
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -820,7 +916,6 @@ function ReadyBatchCard({
   orders,
   onOpen,
   onAdvance,
-  onClose,
   selectMode,
   selectedIds,
   onToggleSelectMany,
@@ -828,7 +923,6 @@ function ReadyBatchCard({
   orders: ReadyOrder[];
   onOpen: (id: string) => void;
   onAdvance: () => void;
-  onClose: () => void;
   selectMode?: boolean;
   selectedIds?: Set<string>;
   onToggleSelectMany?: () => void;
@@ -911,7 +1005,6 @@ function ReadyRow({
   order,
   onOpen,
   onAdvance,
-  onClose,
   selectMode,
   isSelected,
   onToggleSelect,
@@ -919,7 +1012,6 @@ function ReadyRow({
   order: ReadyOrder;
   onOpen: () => void;
   onAdvance: () => void;
-  onClose: () => void;
   selectMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: () => void;
@@ -929,6 +1021,7 @@ function ReadyRow({
   const isPendingWorkshop = hasPendingProduction(order);
   const isPendingRouting = hasPendingRouting(order);
   const pendingCount = pendingRoutingCount(order);
+  const rejectedInvoice = getRejectedInvoice(order);
 
   const handleClick = selectMode && onToggleSelect ? onToggleSelect : onOpen;
 
@@ -962,19 +1055,50 @@ function ReadyRow({
             {PAY_LABEL[order.paymentStatus]}
           </span>
         </div>
+        {rejectedInvoice && (
+          <div className={styles.rejectedInvoiceBanner}>
+            <XCircle size={14} />
+            <span>Склад отклонил накладную {rejectedInvoice.invoiceNumber}</span>
+            {rejectedInvoice.rejectionReason && (
+              <span className={styles.rejectedReason}>Причина: {rejectedInvoice.rejectionReason}</span>
+            )}
+          </div>
+        )}
         <div className={styles.rowClient}>{order.clientName}</div>
         <div className={styles.rowMeta}>
-          <span>{buildItemLine(firstItem) || 'Без позиции'}</span>
+          <span>
+            {buildItemLine(firstItem) || 'Без позиции'}
+            {order.items.length > 1 && ` +${order.items.length - 1}`}
+          </span>
           <span>{formatMoney(order.totalAmount)}</span>
           <span>{formatDate(order.dueDate)}</span>
+          {order.productionTasks && order.productionTasks.length > 0 && (() => {
+            const done = order.productionTasks.filter(t => t.status === 'done').length;
+            const total = order.productionTasks.length;
+            const color = done === total ? '#4FC999' : done > 0 ? '#E5922A' : '#8B5CF6';
+            return <span style={{ color, fontWeight: 500 }}>{done}/{total} гот.</span>;
+          })()}
         </div>
       </div>
 
       {!selectMode && (
         <div className={styles.actions} onClick={(event) => event.stopPropagation()}>
-          <button className={styles.primaryAction} onClick={onAdvance} disabled={isPendingWorkshop || isPendingRouting}>
-            {isPendingRouting ? 'Назначьте маршрут' : isPendingWorkshop ? 'Ждём цех' : nextStageLabel}
-          </button>
+          {rejectedInvoice ? (
+            <button
+              className={styles.primaryAction}
+              onClick={onAdvance}
+              disabled={isPendingWorkshop || isPendingRouting}
+              style={{ background: '#D94F4F' }}
+              title={`Переправить накладную #${rejectedInvoice.invoiceNumber}`}
+            >
+              <RotateCcw size={14} style={{ marginRight: 4 }} />
+              Переправить
+            </button>
+          ) : (
+            <button className={styles.primaryAction} onClick={onAdvance} disabled={isPendingWorkshop || isPendingRouting}>
+              {isPendingRouting ? 'Назначьте маршрут' : isPendingWorkshop ? 'Ждём цех' : nextStageLabel}
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -985,7 +1109,6 @@ function ReadyBatchRow({
   orders,
   onOpen,
   onAdvance,
-  onClose,
   selectMode,
   selectedIds,
   onToggleSelectMany,
@@ -993,7 +1116,6 @@ function ReadyBatchRow({
   orders: ReadyOrder[];
   onOpen: (id: string) => void;
   onAdvance: () => void;
-  onClose: () => void;
   selectMode?: boolean;
   selectedIds?: Set<string>;
   onToggleSelectMany?: () => void;

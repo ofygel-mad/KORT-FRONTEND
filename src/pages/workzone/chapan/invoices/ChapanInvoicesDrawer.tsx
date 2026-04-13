@@ -72,7 +72,7 @@ export default function ChapanInvoicesDrawer({ open, onClose, initialFilter = 'a
   const confirmSeamstress = useConfirmSeamstress();
   const confirmWarehouse = useConfirmWarehouse();
   const archiveInvoice = useArchiveInvoice();
-  const { canConfirmInvoice } = useChapanPermissions();
+  const { canConfirmInvoice, canAccessWarehouseNav } = useChapanPermissions();
   const [previewInvoiceId, setPreviewInvoiceId] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterTab>(initialFilter);
 
@@ -196,17 +196,7 @@ export default function ChapanInvoicesDrawer({ open, onClose, initialFilter = 'a
                     Склад
                   </span>
 
-                  {inv.status === 'pending_confirmation' && !inv.seamstressConfirmed && canConfirmInvoice && (
-                    <button
-                      type="button"
-                      className={styles.confirmBtn}
-                      onClick={() => confirmSeamstress.mutate(inv.id)}
-                      disabled={confirmSeamstress.isPending}
-                    >
-                      Отправлено
-                    </button>
-                  )}
-                  {inv.status === 'pending_confirmation' && !inv.warehouseConfirmed && (
+                  {inv.status === 'pending_confirmation' && !inv.warehouseConfirmed && canAccessWarehouseNav && (
                     <button
                       type="button"
                       className={styles.confirmBtn}
@@ -229,6 +219,22 @@ export default function ChapanInvoicesDrawer({ open, onClose, initialFilter = 'a
                     Просмотр
                   </button>
                 </div>
+
+                {inv.status === 'rejected' && (
+                  <div style={{ background: 'color-mix(in srgb, #D94F4F 12%, transparent)', borderRadius: 8, padding: 10, marginTop: 8 }}>
+                    <div style={{ color: '#D94F4F', fontWeight: 600, fontSize: 13 }}>
+                      Накладная отклонена складом
+                    </div>
+                    {inv.rejectionReason && (
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
+                        Причина: {inv.rejectionReason}
+                      </div>
+                    )}
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 6 }}>
+                      Заказы остаются в разделе «Готово». Нажмите «На склад» снова чтобы создать новую накладную.
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

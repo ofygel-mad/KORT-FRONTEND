@@ -116,6 +116,7 @@ export interface ProductionTask {
   color?: string | null;
   gender?: string | null;
   length?: string | null;
+  workshopNotes?: string | null;
   // From order relation:
   order: {
     id: string;
