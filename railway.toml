@@ -2,7 +2,5 @@
 builder = "dockerfile"
 
 [deploy]
-healthcheckPath = "/healthz"
-healthcheckTimeout = 300
-restartPolicyType = "on_failure"
-restartPolicyMaxRetries = 10
+port = 80
+startCommand = "/usr/local/bin/start-nginx.sh"
