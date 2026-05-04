@@ -5,7 +5,6 @@ import { toast, Toaster } from 'sonner';
 import * as Sentry from '@sentry/react';
 import { AppRouter } from './app/router';
 import { ConsoleRoot } from './console';
-import { Launch } from './pages/launch/Launch';
 import { api } from './shared/api/client';
 import type { AuthSessionResponse } from './shared/api/contracts';
 import { readApiErrorMessage, readApiErrorStatus } from './shared/api/errors';
@@ -13,6 +12,7 @@ import { ensureDevAuthBypass } from './shared/config/devAccess';
 import './shared/design/globals.css';
 import { getNavigator, getWindow, isBrowser } from './shared/lib/browser';
 import { isChunkLoadError, reloadForChunkErrorOnce } from './shared/lib/browser';
+import { readStorage, reloadWindow, writeStorage } from './shared/lib/browser';
 import { useAuthStore } from './shared/stores/auth';
 import { PageLoader } from './shared/ui/PageLoader';
 
@@ -44,34 +44,6 @@ const queryClient = new QueryClient({
 
 type BootstrapResponse = Omit<AuthSessionResponse, 'access' | 'refresh'> & { orgs?: import('./shared/stores/auth').OrgSummary[] };
 
-const INTRO_KEY = 'kort.workspace:intro-v1';
-
-function hasSeenIntro(): boolean {
-  try {
-    return window.localStorage.getItem(INTRO_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-
-function isMobileDevice(): boolean {
-  try {
-    return window.matchMedia('(max-width: 768px)').matches ||
-      /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
-  } catch {
-    return false;
-  }
-}
-
-function shouldSkipIntro(): boolean {
-  try {
-    // H1 fix: на мобильных устройствах intro не показываем совсем
-    if (isMobileDevice()) return true;
-    return window.location.pathname === '/workzone/request';
-  } catch {
-    return false;
-  }
-}
 
 function SessionBootstrap({ children }: { children: ReactNode }) {
   const token = useAuthStore((state) => state.token);
@@ -177,9 +149,6 @@ function SessionBootstrap({ children }: { children: ReactNode }) {
 }
 
 function App() {
-  const skipIntro = shouldSkipIntro();
-  const [introDone, setIntroDone] = useState(() => skipIntro || hasSeenIntro());
-
   return (
     <QueryClientProvider client={queryClient}>
       <SessionBootstrap>
@@ -187,23 +156,70 @@ function App() {
       </SessionBootstrap>
       <Toaster position="bottom-right" richColors />
       <ConsoleRoot />
-
-      {!skipIntro && !introDone && (
-        <Launch
-          introSessionKey={INTRO_KEY}
-          onComplete={() => setIntroDone(true)}
-        />
-      )}
     </QueryClientProvider>
   );
 }
 
-ensureDevAuthBypass();
-
-ReactDOM.createRoot(document.getElementById('root')!).render(<App />);
-
 const nav = getNavigator();
 const win = getWindow();
+
+async function clearServiceWorkersAndCaches() {
+  if (!nav || !('serviceWorker' in nav) || !win) {
+    return false;
+  }
+
+  const registrations = await nav.serviceWorker.getRegistrations();
+  if (registrations.length === 0) {
+    return false;
+  }
+
+  await Promise.all(registrations.map((registration) => registration.unregister()));
+
+  if ('caches' in win) {
+    const cacheKeys = await win.caches.keys();
+    await Promise.all(cacheKeys.map((cacheKey) => win.caches.delete(cacheKey)));
+  }
+
+  return true;
+}
+
+async function cleanupDevServiceWorker() {
+  if (!isBrowser || !import.meta.env.DEV || !nav || !('serviceWorker' in nav) || !win) {
+    return false;
+  }
+
+  try {
+    const hadController = Boolean(nav.serviceWorker.controller);
+    const cleaned = await clearServiceWorkersAndCaches();
+    if (!cleaned || !hadController) {
+      return false;
+    }
+
+    const key = 'kort:dev-sw-reset';
+    if (readStorage(key, 'session') === 'done') {
+      return false;
+    }
+
+    writeStorage(key, 'done', 'session');
+    reloadWindow();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function bootstrap() {
+  ensureDevAuthBypass();
+
+  if (await cleanupDevServiceWorker()) {
+    return;
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')!).render(<App />);
+}
+
+void bootstrap();
+
 if (isBrowser && win) {
   const handleChunkLoadFailure = (error: unknown) => {
     if (!isChunkLoadError(error)) return false;
@@ -226,19 +242,9 @@ if (isBrowser && win) {
 if (isBrowser && nav && 'serviceWorker' in nav && import.meta.env.PROD && win) {
   const clearLegacyServiceWorkers = async () => {
     try {
-      const registrations = await nav.serviceWorker.getRegistrations();
-      await Promise.all(registrations.map((registration) => registration.unregister()));
+      await clearServiceWorkersAndCaches();
     } catch {
       // ignore service worker cleanup failures
-    }
-
-    if ('caches' in win) {
-      try {
-        const cacheKeys = await win.caches.keys();
-        await Promise.all(cacheKeys.map((cacheKey) => win.caches.delete(cacheKey)));
-      } catch {
-        // ignore cache cleanup failures
-      }
     }
   };
 
